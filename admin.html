@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Talonario de Rifa</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lavender: '#b5a7cb',
+            peach: '#f8dcc0',
+            lavLight: '#e8e2f0',
+            peachLight: '#fdf0e4',
+            lavDark: '#8a7aa6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: 'Nunito', sans-serif; }
+    .font-heading { font-family: 'Cormorant Garamond', serif; }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .ticket-cell { transition: all 0.2s ease; }
+    .ticket-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(181,167,203,0.3); }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #b5a7cb; border-radius: 3px; }
+    .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: opacity 0.3s; pointer-events: none; }
+  </style>
+</head>
+<body class="h-full bg-white">
+  <div id="app" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+    <div id="toast" class="toast-msg opacity-0 bg-lavender text-white"></div>
+
+    <header class="w-full px-4 py-5 sm:px-8 sm:py-6 text-center fade-in">
+      <div class="flex items-center justify-center gap-2 mb-1">
+        <i data-lucide="crown" class="text-lavender" style="width:28px;height:28px;"></i>
+        <h1 id="headerTitle" class="font-heading text-3xl sm:text-4xl font-bold text-lavDark">Gran Rifa</h1>
+      </div>
+      <p class="text-sm text-lavDark/60 font-medium tracking-wide uppercase">Panel de Administración</p>
+      <div class="mt-3 flex items-center justify-center gap-2 flex-wrap">
+        <a href="cliente.html" class="px-4 py-2 rounded-full bg-white border border-lavLight text-lavDark text-sm font-semibold hover:bg-lavLight/30 transition">Abrir vista cliente</a>
+        <button onclick="copyClientLink()" class="px-4 py-2 rounded-full bg-lavender text-white text-sm font-semibold hover:bg-lavDark transition">Copiar enlace cliente</button>
+      </div>
+    </header>
+
+    <main class="w-full px-3 sm:px-6 pb-8 flex flex-col lg:flex-row gap-5 max-w-[1400px] mx-auto">
+      <div class="w-full lg:w-[380px] lg:min-w-[340px] flex flex-col gap-5">
+        <section class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 fade-in">
+          <div class="flex items-center gap-2 mb-4 cursor-pointer select-none" onclick="toggleSection('configBody')">
+            <i data-lucide="settings" class="text-lavender" style="width:18px;height:18px;"></i>
+            <h2 class="font-heading text-xl font-bold text-lavDark">Configuración</h2>
+            <i data-lucide="chevron-down" id="configBodyChev" class="ml-auto text-lavDark/40" style="width:16px;height:16px;transition:transform 0.2s;"></i>
+          </div>
+          <div id="configBody" class="space-y-3">
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Nombre</label>
+              <input id="cfgName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Premio</label>
+              <input id="cfgPrize" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+            </div>
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Precio</label>
+                <input id="cfgPrice" type="number" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+              </div>
+              <div class="flex-1">
+                <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Cantidad</label>
+                <input id="cfgTotal" type="number" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+              </div>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">WhatsApp</label>
+              <input id="cfgWA" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Mensaje de Reserva</label>
+              <textarea id="cfgMsgRes" rows="2" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40 resize-none"></textarea>
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Mensaje de Pago</label>
+              <textarea id="cfgMsgPay" rows="3" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40 resize-none"></textarea>
+            </div>
+            <button onclick="saveConfig()" class="w-full py-2.5 rounded-xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-colors flex items-center justify-center gap-2">
+              <i data-lucide="save" style="width:15px;height:15px;"></i> Guardar Configuración
+            </button>
+          </div>
+        </section>
+
+        <section class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 fade-in">
+          <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="bar-chart-3" class="text-lavender" style="width:18px;height:18px;"></i>
+            <h2 class="font-heading text-xl font-bold text-lavDark">Resumen</h2>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-emerald-50 rounded-xl p-3 text-center">
+              <div id="countAvail" class="text-2xl font-bold text-emerald-600">0</div>
+              <div class="text-[10px] font-semibold text-emerald-600/70 uppercase">Disponibles</div>
+            </div>
+            <div class="bg-amber-50 rounded-xl p-3 text-center">
+              <div id="countReserved" class="text-2xl font-bold text-amber-600">0</div>
+              <div class="text-[10px] font-semibold text-amber-600/70 uppercase">Reservados</div>
+            </div>
+            <div class="bg-violet-50 rounded-xl p-3 text-center">
+              <div id="countPaid" class="text-2xl font-bold text-violet-600">0</div>
+              <div class="text-[10px] font-semibold text-violet-600/70 uppercase">Pagados</div>
+            </div>
+          </div>
+          <div class="mt-3 bg-peachLight rounded-xl p-3 flex items-center justify-between">
+            <span class="text-xs font-semibold text-lavDark/70">Recaudado</span>
+            <span id="totalRevenue" class="text-lg font-bold text-lavDark">$0</span>
+          </div>
+        </section>
+
+        <section class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 fade-in">
+          <div class="flex items-center gap-2 mb-4 cursor-pointer select-none" onclick="toggleSection('reservedBody')">
+            <i data-lucide="clock" class="text-amber-500" style="width:18px;height:18px;"></i>
+            <h2 class="font-heading text-xl font-bold text-lavDark">Reservados</h2>
+            <span id="reservedBadge" class="ml-1 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">0</span>
+            <i data-lucide="chevron-down" id="reservedBodyChev" class="ml-auto text-lavDark/40" style="width:16px;height:16px;transition:transform 0.2s;"></i>
+          </div>
+          <div id="reservedBody">
+            <div id="reservedList" class="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+              <p class="text-sm text-lavDark/40 text-center py-4">No hay números reservados</p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div class="flex-1 min-w-0">
+        <section class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 fade-in">
+          <div class="flex items-center gap-2 mb-4">
+            <i data-lucide="grid-3x3" class="text-lavender" style="width:18px;height:18px;"></i>
+            <h2 class="font-heading text-xl font-bold text-lavDark">Talonario</h2>
+          </div>
+          <div class="flex gap-2 mb-4 flex-wrap">
+            <button onclick="setFilter('all')" id="filterAll" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-lavender text-white border-lavender">Todos</button>
+            <button onclick="setFilter('available')" id="filterAvail" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Disponibles</button>
+            <button onclick="setFilter('reserved')" id="filterReserved" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Reservados</button>
+            <button onclick="setFilter('paid')" id="filterPaid" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Pagados</button>
+          </div>
+          <div id="ticketGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));"></div>
+        </section>
+      </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl fade-in">
+        <h3 id="modalTitle" class="font-heading text-xl font-bold text-lavDark mb-4">Número #1</h3>
+        <div id="modalContent"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="firebase-config.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
+    import {
+      getFirestore, collection, doc, setDoc, updateDoc, deleteDoc,
+      onSnapshot, getDocs, writeBatch, serverTimestamp
+    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+
+    const sectionsCollapsed = {};
+    let currentFilter = 'all';
+    let app, db;
+    let configUnsub = null;
+    let ticketsUnsub = null;
+
+    const state = {
+      config: {
+        raffle_name: 'Gran Rifa',
+        prize: 'Una canasta sorpresa',
+        price: '2000',
+        whatsapp: '56933024232',
+        reserve_message: 'Hola, quiero reservar un número de la rifa y realizar el pago.',
+        payment_message: 'Para confirmar tu número, realiza el pago y envía el comprobante. Transferencia a: [TUS DATOS AQUÍ]',
+        total_numbers: '100'
+      },
+      tickets: new Map()
+    };
+
+    function ensureFirebaseConfig() {
+      if (!window.FIREBASE_CONFIG) {
+        alert('Falta firebase-config.js');
+        throw new Error('Falta firebase-config.js');
+      }
+    }
+
+    function cfg(key) { return state.config[key]; }
+    function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
+    function getPrice() { return parseInt(cfg('price')) || 0; }
+    function getRecord(num) { return state.tickets.get(String(num)) || null; }
+    function getStatus(num) { return getRecord(num)?.status || 'available'; }
+
+    function showToast(msg, color = '#b5a7cb') {
+      const t = document.getElementById('toast');
+      t.textContent = msg; t.style.background = color; t.style.opacity = '1';
+      setTimeout(() => t.style.opacity = '0', 2200);
+    }
+
+    function toggleSection(id) {
+      const el = document.getElementById(id);
+      const chev = document.getElementById(id + 'Chev');
+      if (!el) return;
+      sectionsCollapsed[id] = !sectionsCollapsed[id];
+      el.style.display = sectionsCollapsed[id] ? 'none' : '';
+      if (chev) chev.style.transform = sectionsCollapsed[id] ? 'rotate(-90deg)' : '';
+    }
+    window.toggleSection = toggleSection;
+
+    function formatDate(v) {
+      if (!v) return '—';
+      const d = v?.toDate ? v.toDate() : new Date(v);
+      return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+    }
+
+    function loadConfigToFields() {
+      document.getElementById('cfgName').value = cfg('raffle_name');
+      document.getElementById('cfgPrize').value = cfg('prize');
+      document.getElementById('cfgPrice').value = cfg('price');
+      document.getElementById('cfgTotal').value = cfg('total_numbers');
+      document.getElementById('cfgWA').value = cfg('whatsapp');
+      document.getElementById('cfgMsgRes').value = cfg('reserve_message');
+      document.getElementById('cfgMsgPay').value = cfg('payment_message');
+    }
+
+    async function saveConfig() {
+      const newTotal = Math.max(1, Math.min(999, parseInt(document.getElementById('cfgTotal').value) || 100));
+      const maxUsed = [...state.tickets.values()].reduce((max, r) => (r.status === 'reserved' || r.status === 'paid') ? Math.max(max, r.number) : max, 0);
+      if (newTotal < maxUsed) {
+        showToast(`No puedes reducir a ${newTotal}. Hay números hasta #${maxUsed} ocupados.`, '#e57373');
+        return;
+      }
+      const nextConfig = {
+        raffle_name: document.getElementById('cfgName').value || state.config.raffle_name,
+        prize: document.getElementById('cfgPrize').value || state.config.prize,
+        price: document.getElementById('cfgPrice').value || state.config.price,
+        total_numbers: String(newTotal),
+        whatsapp: document.getElementById('cfgWA').value || state.config.whatsapp,
+        reserve_message: document.getElementById('cfgMsgRes').value || state.config.reserve_message,
+        payment_message: document.getElementById('cfgMsgPay').value || state.config.payment_message,
+        updatedAt: serverTimestamp()
+      };
+      await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), nextConfig, { merge: true });
+      showToast('Configuración guardada ✓');
+    }
+    window.saveConfig = saveConfig;
+
+    function renderAll() {
+      document.getElementById('headerTitle').textContent = cfg('raffle_name');
+      const total = totalNums();
+      const price = getPrice();
+      let avail = 0, reserved = 0, paid = 0;
+      for (let i = 1; i <= total; i++) {
+        const s = getStatus(i);
+        if (s === 'reserved') reserved++;
+        else if (s === 'paid') paid++;
+        else avail++;
+      }
+      document.getElementById('countAvail').textContent = avail;
+      document.getElementById('countReserved').textContent = reserved;
+      document.getElementById('countPaid').textContent = paid;
+      document.getElementById('reservedBadge').textContent = reserved;
+      document.getElementById('totalRevenue').textContent = '$' + (paid * price).toLocaleString('es-CL');
+      loadConfigToFields();
+      renderGrid(total);
+      renderReservedList();
+      lucide.createIcons();
+    }
+
+    function renderGrid(total) {
+      const grid = document.getElementById('ticketGrid');
+      grid.innerHTML = '';
+      for (let i = 1; i <= total; i++) {
+        const s = getStatus(i);
+        const visible = currentFilter === 'all' || currentFilter === s || (currentFilter === 'available' && s === 'available');
+        const el = document.createElement('div');
+        if (!visible) { el.style.display = 'none'; }
+        let bg, text, border;
+        if (s === 'paid') { bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd'; }
+        else if (s === 'reserved') { bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d'; }
+        else { bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0'; }
+        el.className = 'ticket-cell';
+        el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:6px 2px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;position:relative;`;
+        const r = getRecord(i);
+        el.title = r?.name || '';
+        el.textContent = String(i).padStart(2, '0');
+        el.addEventListener('click', () => openModal(i));
+        grid.appendChild(el);
+      }
+    }
+
+    function renderReservedList() {
+      const list = document.getElementById('reservedList');
+      const items = [...state.tickets.values()].filter(r => r.status === 'reserved').sort((a, b) => a.number - b.number);
+      if (!items.length) {
+        list.innerHTML = '<p class="text-sm text-lavDark/40 text-center py-4">No hay números reservados</p>';
+        return;
+      }
+      list.innerHTML = '';
+      for (const r of items) {
+        const el = document.createElement('div');
+        el.className = 'bg-amber-50/80 rounded-xl p-3 border border-amber-200/60';
+        el.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="bg-amber-200 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">#${String(r.number).padStart(2,'0')}</span>
+            <span class="text-[10px] text-amber-600/60">${formatDate(r.reservedAt)}</span>
+          </div>
+          <p class="text-sm font-semibold text-lavDark truncate">${r.name || 'Sin nombre'}</p>
+          <p class="text-xs text-lavDark/50">${r.phone || 'Sin teléfono'}</p>
+          <div class="flex gap-2 mt-2">
+            <button class="flex-1 py-1.5 rounded-lg bg-violet-500 text-white text-xs font-semibold hover:bg-violet-600 transition-colors">✓ Pagado</button>
+            <button class="flex-1 py-1.5 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">💬 Mensaje</button>
+            <button class="flex-1 py-1.5 rounded-lg bg-white text-red-400 text-xs font-semibold border border-red-200 hover:bg-red-50 transition-colors">Liberar</button>
+          </div>`;
+        const [paidBtn, msgBtn, freeBtn] = el.querySelectorAll('button');
+        paidBtn.addEventListener('click', () => markPaid(String(r.number)));
+        msgBtn.addEventListener('click', () => sendPaymentMessage(r.phone));
+        freeBtn.addEventListener('click', () => freeNumber(String(r.number)));
+        list.appendChild(el);
+      }
+    }
+
+    function setFilter(f) {
+      currentFilter = f;
+      ['All','Avail','Reserved','Paid'].forEach(k => {
+        const btn = document.getElementById('filter' + k);
+        const active = f === k.toLowerCase() || (f === 'all' && k === 'All') || (f === 'available' && k === 'Avail');
+        btn.className = `px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${active ? 'bg-lavender text-white border-lavender' : 'border-lavLight text-lavDark/60 hover:bg-lavLight/30'}`;
+      });
+      renderAll();
+    }
+    window.setFilter = setFilter;
+
+    function openModal(num) {
+      const modal = document.getElementById('modal');
+      const title = document.getElementById('modalTitle');
+      const content = document.getElementById('modalContent');
+      const s = getStatus(num);
+      const r = getRecord(num);
+      title.textContent = `Número #${String(num).padStart(2, '0')}`;
+      if (s === 'available') {
+        content.innerHTML = `
+          <div class="space-y-3">
+            <div><label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
+            <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" /></div>
+            <div><label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono</label>
+            <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" /></div>
+            <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors">Reservar</button>
+            <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+          </div>`;
+        content.querySelector('#reserveBtn').addEventListener('click', () => doReserve(num));
+        content.querySelector('#cancelBtn').addEventListener('click', closeModal);
+      } else if (s === 'reserved') {
+        content.innerHTML = `
+          <div class="space-y-2 mb-4">
+            <p class="text-sm"><span class="font-semibold text-lavDark/60">Nombre:</span> ${r?.name || '—'}</p>
+            <p class="text-sm"><span class="font-semibold text-lavDark/60">Teléfono:</span> ${r?.phone || '—'}</p>
+            <p class="text-sm"><span class="font-semibold text-lavDark/60">Reservado:</span> ${formatDate(r?.reservedAt)}</p>
+          </div>
+          <div class="space-y-2">
+            <button id="paidBtn" class="w-full py-2.5 rounded-xl bg-violet-500 text-white font-semibold text-sm hover:bg-violet-600 transition-colors">✓ Marcar Pagado</button>
+            <button id="msgBtn" class="w-full py-2.5 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors flex items-center justify-center gap-2"><span>Enviar Mensaje</span></button>
+            <button id="freeBtn" class="w-full py-2 rounded-xl bg-white text-red-400 font-semibold text-sm border border-red-200 hover:bg-red-50 transition-colors">Liberar Número</button>
+            <button id="closeBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
+          </div>`;
+        content.querySelector('#paidBtn').addEventListener('click', async () => { await markPaid(String(num)); closeModal(); });
+        content.querySelector('#msgBtn').addEventListener('click', () => sendPaymentMessage(r?.phone));
+        content.querySelector('#freeBtn').addEventListener('click', async () => { await freeNumber(String(num)); closeModal(); });
+        content.querySelector('#closeBtn').addEventListener('click', closeModal);
+      } else {
+        content.innerHTML = `
+          <div class="space-y-2 mb-4">
+            <div class="inline-block bg-violet-100 text-violet-700 text-xs font-bold px-3 py-1 rounded-full mb-2">PAGADO</div>
+            <p class="text-sm"><span class="font-semibold text-lavDark/60">Nombre:</span> ${r?.name || '—'}</p>
+            <p class="text-sm"><span class="font-semibold text-lavDark/60">Teléfono:</span> ${r?.phone || '—'}</p>
+            <p class="text-sm"><span class="font-semibold text-lavDark/60">Pagado:</span> ${formatDate(r?.paidAt)}</p>
+          </div>
+          <div class="space-y-2">
+            <button id="resetBtn" class="w-full py-2 rounded-xl bg-white text-red-400 font-semibold text-sm border border-red-200 hover:bg-red-50 transition-colors">Reset (Liberar)</button>
+            <button id="closeBtn2" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
+          </div>`;
+        content.querySelector('#resetBtn').addEventListener('click', async () => { await resetNumber(String(num)); closeModal(); });
+        content.querySelector('#closeBtn2').addEventListener('click', closeModal);
+      }
+      modal.style.display = 'flex';
+      lucide.createIcons();
+    }
+    window.openModal = openModal;
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    window.closeModal = closeModal;
+    document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+    async function doReserve(num) {
+      const name = document.getElementById('mName')?.value?.trim();
+      const phone = document.getElementById('mPhone')?.value?.trim();
+      if (!name || !phone) { showToast('Nombre y teléfono requeridos', '#e57373'); return; }
+      await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(num)), {
+        number: num,
+        status: 'reserved',
+        name,
+        phone,
+        note: '',
+        reservedAt: serverTimestamp(),
+        paidAt: null
+      }, { merge: true });
+      showToast(`#${num} reservado ✓`);
+      closeModal();
+    }
+    window.doReserve = doReserve;
+
+    async function markPaid(id) {
+      const r = getRecord(Number(id));
+      if (!r) return;
+      await updateDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(r.number)), {
+        status: 'paid',
+        paidAt: serverTimestamp()
+      });
+      showToast(`#${r.number} marcado pagado ✓`, '#7c3aed');
+    }
+    window.markPaid = markPaid;
+
+    async function freeNumber(id) {
+      const r = getRecord(Number(id));
+      if (!r) return;
+      await deleteDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(r.number)));
+      showToast(`#${r.number} liberado`, '#059669');
+    }
+    window.freeNumber = freeNumber;
+    async function resetNumber(id) { await freeNumber(id); }
+    window.resetNumber = resetNumber;
+
+    function sendPaymentMessage(phone) {
+      if (!phone) { showToast('No hay teléfono registrado', '#e57373'); return; }
+      const msgText = cfg('payment_message');
+      const waUrl = `https://wa.me/${String(phone).replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`;
+      showToast('Abriendo WhatsApp...', '#25d366');
+      setTimeout(() => window.open(waUrl, '_blank'), 300);
+    }
+    window.sendPaymentMessage = sendPaymentMessage;
+
+    function copyClientLink() {
+      const url = new URL(window.location.href);
+      url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
+      navigator.clipboard.writeText(url.toString()).then(() => showToast('Enlace cliente copiado'));
+    }
+    window.copyClientLink = copyClientLink;
+
+    async function ensureInitialConfig() {
+      const configRef = doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config');
+      await setDoc(configRef, {
+        ...state.config,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
+    async function init() {
+      ensureFirebaseConfig();
+      app = initializeApp(window.FIREBASE_CONFIG);
+      db = getFirestore(app);
+      await ensureInitialConfig();
+
+      configUnsub = onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          state.config = { ...state.config, ...Object.fromEntries(Object.entries(data).filter(([_,v]) => v != null)) };
+          renderAll();
+        }
+      });
+
+      ticketsUnsub = onSnapshot(collection(db, 'raffles', window.RAFFLE_ID, 'tickets'), (snapshot) => {
+        const next = new Map();
+        snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
+        state.tickets = next;
+        renderAll();
+      });
+
+      loadConfigToFields();
+      renderAll();
+    }
+
+    init().catch(err => {
+      console.error(err);
+      alert('Error iniciando Firebase. Revisa firebase-config.js y las reglas.');
+    });
+  </script>
+</body>
+</html>
