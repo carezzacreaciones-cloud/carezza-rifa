@@ -32,12 +32,26 @@
     .ticket-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(181,167,203,0.3); }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #b5a7cb; border-radius: 3px; }
-    .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: opacity 0.3s; pointer-events: none; }
+    .toast-msg {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body class="h-full bg-white">
   <div id="app" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
     <div id="toast" class="toast-msg opacity-0 bg-lavender text-white"></div>
+
     <header class="w-full px-4 py-6 sm:px-8 sm:py-8 text-center fade-in">
       <div class="flex items-center justify-center gap-2 mb-3">
         <i data-lucide="gift" class="text-lavender" style="width:32px;height:32px;"></i>
@@ -45,6 +59,7 @@
       </div>
       <p class="text-sm text-lavDark/60 font-medium tracking-wide uppercase">¡Reserva tu número y gana!</p>
     </header>
+
     <main class="w-full px-3 sm:px-6 pb-12 max-w-[900px] mx-auto">
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 fade-in">
         <div class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 text-center">
@@ -63,14 +78,17 @@
           <p id="infoAvailable" class="font-heading text-lg font-bold text-emerald-600">100</p>
         </div>
       </div>
+
       <div class="flex gap-2 mb-6 flex-wrap fade-in">
         <button class="px-4 py-2 rounded-full text-sm font-semibold border transition-colors bg-lavender text-white border-lavender">
           <i data-lucide="check-circle" style="width:16px;height:16px;display:inline;margin-right:6px;"></i>Ver todos los números
         </button>
       </div>
+
       <section class="bg-white/80 backdrop-blur rounded-2xl p-6 shadow-sm border border-lavLight/50 fade-in">
         <div id="ticketGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));"></div>
       </section>
+
       <div class="mt-6 grid grid-cols-3 gap-3 text-center text-xs fade-in">
         <div class="p-2"><div class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold mb-1">Disponible</div></div>
         <div class="p-2"><div class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-semibold mb-1">Reservado</div></div>
@@ -91,8 +109,13 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import {
-      getFirestore, collection, doc, setDoc,
-      onSnapshot, serverTimestamp
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      getDoc,
+      onSnapshot,
+      serverTimestamp
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     let app, db;
@@ -115,27 +138,49 @@
         throw new Error('Falta firebase-config.js');
       }
     }
-    function cfg(key) { return state.config[key]; }
-    function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
-    function getPrice() { return parseInt(cfg('price')) || 0; }
-    function getRecord(num) { return state.tickets.get(String(num)) || null; }
-    function getStatus(num) { return getRecord(num)?.status || 'available'; }
+
+    function cfg(key) {
+      return state.config[key];
+    }
+
+    function totalNums() {
+      return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100));
+    }
+
+    function getPrice() {
+      return parseInt(cfg('price')) || 0;
+    }
+
+    function getRecord(num) {
+      return state.tickets.get(String(num)) || null;
+    }
+
+    function getStatus(num) {
+      return getRecord(num)?.status || 'available';
+    }
 
     function showToast(msg, color = '#b5a7cb') {
       const t = document.getElementById('toast');
-      t.textContent = msg; t.style.background = color; t.style.opacity = '1';
+      t.textContent = msg;
+      t.style.background = color;
+      t.style.opacity = '1';
       setTimeout(() => t.style.opacity = '0', 2200);
     }
 
     function renderAll() {
       const total = totalNums();
       const price = getPrice();
+
       document.getElementById('headerTitle').textContent = cfg('raffle_name');
       document.getElementById('infoPrize').textContent = cfg('prize');
       document.getElementById('infoPrice').textContent = '$' + parseInt(price).toLocaleString('es-CL');
+
       let avail = 0;
-      for (let i = 1; i <= total; i++) { if (getStatus(i) === 'available') avail++; }
+      for (let i = 1; i <= total; i++) {
+        if (getStatus(i) === 'available') avail++;
+      }
       document.getElementById('infoAvailable').textContent = avail;
+
       renderGrid(total);
       lucide.createIcons();
     }
@@ -143,19 +188,30 @@
     function renderGrid(total) {
       const grid = document.getElementById('ticketGrid');
       grid.innerHTML = '';
+
       for (let i = 1; i <= total; i++) {
         const s = getStatus(i);
         const el = document.createElement('div');
         const isClickable = s === 'available';
+
         let bg, text, border;
-        if (s === 'paid') { bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd'; }
-        else if (s === 'reserved') { bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d'; }
-        else { bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0'; }
+        if (s === 'paid') {
+          bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd';
+        } else if (s === 'reserved') {
+          bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d';
+        } else {
+          bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0';
+        }
+
         el.className = 'ticket-cell';
         el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:6px 2px;text-align:center;font-weight:700;font-size:14px;cursor:${isClickable ? 'pointer' : 'not-allowed'};display:block;position:relative;opacity:${isClickable ? '1' : '0.6'};pointer-events:${isClickable ? 'auto' : 'none'};`;
         el.title = getRecord(i)?.name || '';
         el.textContent = String(i).padStart(2, '0');
-        if (isClickable) el.addEventListener('click', () => openModal(i));
+
+        if (isClickable) {
+          el.addEventListener('click', () => openModal(i));
+        }
+
         grid.appendChild(el);
       }
     }
@@ -164,36 +220,56 @@
       const modal = document.getElementById('modal');
       document.getElementById('modalTitle').textContent = `Número #${String(num).padStart(2, '0')}`;
       document.getElementById('modalSubtitle').textContent = 'Completá tus datos para reservar';
+
       const content = document.getElementById('modalContent');
       content.innerHTML = `
         <div class="space-y-3">
-          <div><label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
-          <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="Tu nombre" /></div>
-          <div><label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono/WhatsApp</label>
-          <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="Ej: 56912345678" /></div>
-          <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors flex items-center justify-center gap-2">Reservar por WhatsApp</button>
-          <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+          <div>
+            <label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
+            <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="Tu nombre" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono/WhatsApp</label>
+            <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="Ej: 56912345678" />
+          </div>
+          <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors flex items-center justify-center gap-2">
+            Reservar por WhatsApp
+          </button>
+          <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">
+            Cancelar
+          </button>
         </div>`;
+
       content.querySelector('#reserveBtn').addEventListener('click', () => doReserve(num));
       content.querySelector('#cancelBtn').addEventListener('click', closeModal);
+
       modal.style.display = 'flex';
       lucide.createIcons();
     }
 
-    function closeModal() { document.getElementById('modal').style.display = 'none'; }
-    document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
+
+    document.getElementById('modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeModal();
+    });
 
     async function doReserve(num) {
       const name = document.getElementById('mName')?.value?.trim();
       const phone = document.getElementById('mPhone')?.value?.trim();
+
       if (!name || !phone) {
         showToast('Nombre y teléfono requeridos', '#e57373');
         return;
       }
+
       const wa = String(cfg('whatsapp')).replace(/\D/g, '');
       const msgBase = cfg('reserve_message');
       const price = getPrice();
+
       const fullMsg = `${msgBase}\n\nNúmero: #${String(num).padStart(2, '0')}\nPrecio: $${price.toLocaleString('es-CL')}\n\nMis datos:\nNombre: ${name}\nTeléfono: ${phone}`;
+
       await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(num)), {
         number: num,
         status: 'reserved',
@@ -203,36 +279,50 @@
         reservedAt: serverTimestamp(),
         paidAt: null
       }, { merge: true });
+
       closeModal();
       showToast('¡Número reservado! Abriendo WhatsApp...', '#059669');
       setTimeout(() => window.open(`https://wa.me/${wa}?text=${encodeURIComponent(fullMsg)}`, '_blank'), 500);
     }
 
     async function ensureInitialConfig() {
-      await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), {
-        ...state.config,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const configRef = doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config');
+      const snap = await getDoc(configRef);
+
+      if (!snap.exists()) {
+        await setDoc(configRef, {
+          ...state.config,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
     }
 
     async function init() {
       ensureFirebaseConfig();
+
       app = initializeApp(window.FIREBASE_CONFIG);
       db = getFirestore(app);
+
       await ensureInitialConfig();
+
       onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          state.config = { ...state.config, ...Object.fromEntries(Object.entries(data).filter(([_,v]) => v != null)) };
+          state.config = {
+            ...state.config,
+            ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
+          };
           renderAll();
         }
       });
+
       onSnapshot(collection(db, 'raffles', window.RAFFLE_ID, 'tickets'), (snapshot) => {
         const next = new Map();
         snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
         state.tickets = next;
         renderAll();
       });
+
       renderAll();
       lucide.createIcons();
     }
