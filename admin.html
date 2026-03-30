@@ -90,9 +90,14 @@
               <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Mensaje de Pago</label>
               <textarea id="cfgMsgPay" rows="3" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40 resize-none"></textarea>
             </div>
-            <button onclick="saveConfig()" class="w-full py-2.5 rounded-xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-colors flex items-center justify-center gap-2">
-              <i data-lucide="save" style="width:15px;height:15px;"></i> Guardar Configuración
-            </button>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button onclick="saveConfig()" class="w-full py-2.5 rounded-xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="save" style="width:15px;height:15px;"></i> Guardar Configuración
+              </button>
+              <button onclick="resetRaffle()" class="w-full py-2.5 rounded-xl bg-white text-red-500 border border-red-200 font-semibold text-sm hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i> Resetear rifa
+              </button>
+            </div>
           </div>
         </section>
 
@@ -166,14 +171,12 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import {
       getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDoc,
-      onSnapshot, serverTimestamp
+      onSnapshot, serverTimestamp, getDocs, writeBatch
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     const sectionsCollapsed = {};
     let currentFilter = 'all';
     let app, db;
-    let configUnsub = null;
-    let ticketsUnsub = null;
 
     const state = {
       config: {
@@ -259,6 +262,28 @@
     }
     window.saveConfig = saveConfig;
 
+    async function resetRaffle() {
+      const ok = window.confirm('¿Seguro que quieres resetear la rifa? Esto liberará todos los números reservados y pagados.');
+      if (!ok) return;
+
+      const ticketsRef = collection(db, 'raffles', window.RAFFLE_ID, 'tickets');
+      const snapshot = await getDocs(ticketsRef);
+
+      if (snapshot.empty) {
+        showToast('La rifa ya está limpia');
+        return;
+      }
+
+      const batch = writeBatch(db);
+      snapshot.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
+      showToast('Rifa reseteada ✓', '#059669');
+      closeModal();
+    }
+    window.resetRaffle = resetRaffle;
+
     function renderAll() {
       document.getElementById('headerTitle').textContent = cfg('raffle_name');
       const total = totalNums();
@@ -291,10 +316,9 @@
       for (let i = 1; i <= total; i++) {
         const s = getStatus(i);
         const visible = currentFilter === 'all' || currentFilter === s || (currentFilter === 'available' && s === 'available');
+        if (!visible) continue;
+
         const el = document.createElement('div');
-
-        if (!visible) el.style.display = 'none';
-
         let bg, text, border;
         if (s === 'paid') {
           bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd';
@@ -344,7 +368,6 @@
         paidBtn.addEventListener('click', () => markPaid(String(r.number)));
         msgBtn.addEventListener('click', () => sendPaymentMessage(r.phone));
         freeBtn.addEventListener('click', () => freeNumber(String(r.number)));
-
         list.appendChild(el);
       }
     }
@@ -518,7 +541,7 @@
 
       await ensureInitialConfig();
 
-      configUnsub = onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
+      onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
           state.config = {
@@ -529,7 +552,7 @@
         }
       });
 
-      ticketsUnsub = onSnapshot(collection(db, 'raffles', window.RAFFLE_ID, 'tickets'), (snapshot) => {
+      onSnapshot(collection(db, 'raffles', window.RAFFLE_ID, 'tickets'), (snapshot) => {
         const next = new Map();
         snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
         state.tickets = next;
