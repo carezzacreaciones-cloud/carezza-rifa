@@ -165,8 +165,8 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import {
-      getFirestore, collection, doc, setDoc, updateDoc, deleteDoc,
-      onSnapshot, getDocs, writeBatch, serverTimestamp
+      getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDoc,
+      onSnapshot, serverTimestamp
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     const sectionsCollapsed = {};
@@ -203,7 +203,9 @@
 
     function showToast(msg, color = '#b5a7cb') {
       const t = document.getElementById('toast');
-      t.textContent = msg; t.style.background = color; t.style.opacity = '1';
+      t.textContent = msg;
+      t.style.background = color;
+      t.style.opacity = '1';
       setTimeout(() => t.style.opacity = '0', 2200);
     }
 
@@ -240,6 +242,7 @@
         showToast(`No puedes reducir a ${newTotal}. Hay números hasta #${maxUsed} ocupados.`, '#e57373');
         return;
       }
+
       const nextConfig = {
         raffle_name: document.getElementById('cfgName').value || state.config.raffle_name,
         prize: document.getElementById('cfgPrize').value || state.config.prize,
@@ -250,6 +253,7 @@
         payment_message: document.getElementById('cfgMsgPay').value || state.config.payment_message,
         updatedAt: serverTimestamp()
       };
+
       await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), nextConfig, { merge: true });
       showToast('Configuración guardada ✓');
     }
@@ -259,6 +263,7 @@
       document.getElementById('headerTitle').textContent = cfg('raffle_name');
       const total = totalNums();
       const price = getPrice();
+
       let avail = 0, reserved = 0, paid = 0;
       for (let i = 1; i <= total; i++) {
         const s = getStatus(i);
@@ -266,11 +271,13 @@
         else if (s === 'paid') paid++;
         else avail++;
       }
+
       document.getElementById('countAvail').textContent = avail;
       document.getElementById('countReserved').textContent = reserved;
       document.getElementById('countPaid').textContent = paid;
       document.getElementById('reservedBadge').textContent = reserved;
       document.getElementById('totalRevenue').textContent = '$' + (paid * price).toLocaleString('es-CL');
+
       loadConfigToFields();
       renderGrid(total);
       renderReservedList();
@@ -280,15 +287,23 @@
     function renderGrid(total) {
       const grid = document.getElementById('ticketGrid');
       grid.innerHTML = '';
+
       for (let i = 1; i <= total; i++) {
         const s = getStatus(i);
         const visible = currentFilter === 'all' || currentFilter === s || (currentFilter === 'available' && s === 'available');
         const el = document.createElement('div');
-        if (!visible) { el.style.display = 'none'; }
+
+        if (!visible) el.style.display = 'none';
+
         let bg, text, border;
-        if (s === 'paid') { bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd'; }
-        else if (s === 'reserved') { bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d'; }
-        else { bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0'; }
+        if (s === 'paid') {
+          bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd';
+        } else if (s === 'reserved') {
+          bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d';
+        } else {
+          bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0';
+        }
+
         el.className = 'ticket-cell';
         el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:6px 2px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;position:relative;`;
         const r = getRecord(i);
@@ -302,10 +317,12 @@
     function renderReservedList() {
       const list = document.getElementById('reservedList');
       const items = [...state.tickets.values()].filter(r => r.status === 'reserved').sort((a, b) => a.number - b.number);
+
       if (!items.length) {
         list.innerHTML = '<p class="text-sm text-lavDark/40 text-center py-4">No hay números reservados</p>';
         return;
       }
+
       list.innerHTML = '';
       for (const r of items) {
         const el = document.createElement('div');
@@ -322,10 +339,12 @@
             <button class="flex-1 py-1.5 rounded-lg bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors">💬 Mensaje</button>
             <button class="flex-1 py-1.5 rounded-lg bg-white text-red-400 text-xs font-semibold border border-red-200 hover:bg-red-50 transition-colors">Liberar</button>
           </div>`;
+
         const [paidBtn, msgBtn, freeBtn] = el.querySelectorAll('button');
         paidBtn.addEventListener('click', () => markPaid(String(r.number)));
         msgBtn.addEventListener('click', () => sendPaymentMessage(r.phone));
         freeBtn.addEventListener('click', () => freeNumber(String(r.number)));
+
         list.appendChild(el);
       }
     }
@@ -347,14 +366,20 @@
       const content = document.getElementById('modalContent');
       const s = getStatus(num);
       const r = getRecord(num);
+
       title.textContent = `Número #${String(num).padStart(2, '0')}`;
+
       if (s === 'available') {
         content.innerHTML = `
           <div class="space-y-3">
-            <div><label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
-            <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" /></div>
-            <div><label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono</label>
-            <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" /></div>
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
+              <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+            </div>
+            <div>
+              <label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono</label>
+              <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+            </div>
             <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors">Reservar</button>
             <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
           </div>`;
@@ -392,19 +417,30 @@
         content.querySelector('#resetBtn').addEventListener('click', async () => { await resetNumber(String(num)); closeModal(); });
         content.querySelector('#closeBtn2').addEventListener('click', closeModal);
       }
+
       modal.style.display = 'flex';
       lucide.createIcons();
     }
     window.openModal = openModal;
 
-    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    function closeModal() {
+      document.getElementById('modal').style.display = 'none';
+    }
     window.closeModal = closeModal;
-    document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+
+    document.getElementById('modal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeModal();
+    });
 
     async function doReserve(num) {
       const name = document.getElementById('mName')?.value?.trim();
       const phone = document.getElementById('mPhone')?.value?.trim();
-      if (!name || !phone) { showToast('Nombre y teléfono requeridos', '#e57373'); return; }
+
+      if (!name || !phone) {
+        showToast('Nombre y teléfono requeridos', '#e57373');
+        return;
+      }
+
       await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(num)), {
         number: num,
         status: 'reserved',
@@ -414,6 +450,7 @@
         reservedAt: serverTimestamp(),
         paidAt: null
       }, { merge: true });
+
       showToast(`#${num} reservado ✓`);
       closeModal();
     }
@@ -437,11 +474,17 @@
       showToast(`#${r.number} liberado`, '#059669');
     }
     window.freeNumber = freeNumber;
-    async function resetNumber(id) { await freeNumber(id); }
+
+    async function resetNumber(id) {
+      await freeNumber(id);
+    }
     window.resetNumber = resetNumber;
 
     function sendPaymentMessage(phone) {
-      if (!phone) { showToast('No hay teléfono registrado', '#e57373'); return; }
+      if (!phone) {
+        showToast('No hay teléfono registrado', '#e57373');
+        return;
+      }
       const msgText = cfg('payment_message');
       const waUrl = `https://wa.me/${String(phone).replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`;
       showToast('Abriendo WhatsApp...', '#25d366');
@@ -458,22 +501,30 @@
 
     async function ensureInitialConfig() {
       const configRef = doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config');
-      await setDoc(configRef, {
-        ...state.config,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      const snap = await getDoc(configRef);
+
+      if (!snap.exists()) {
+        await setDoc(configRef, {
+          ...state.config,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
     }
 
     async function init() {
       ensureFirebaseConfig();
       app = initializeApp(window.FIREBASE_CONFIG);
       db = getFirestore(app);
+
       await ensureInitialConfig();
 
       configUnsub = onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          state.config = { ...state.config, ...Object.fromEntries(Object.entries(data).filter(([_,v]) => v != null)) };
+          state.config = {
+            ...state.config,
+            ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
+          };
           renderAll();
         }
       });
