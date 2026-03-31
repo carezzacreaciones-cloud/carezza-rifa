@@ -90,14 +90,17 @@
               <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Mensaje de Pago</label>
               <textarea id="cfgMsgPay" rows="3" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40 resize-none"></textarea>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button onclick="saveConfig()" class="w-full py-2.5 rounded-xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-colors flex items-center justify-center gap-2">
-                <i data-lucide="save" style="width:15px;height:15px;"></i> Guardar Configuración
-              </button>
-              <button onclick="resetRaffle()" class="w-full py-2.5 rounded-xl bg-white text-red-500 border border-red-200 font-semibold text-sm hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
-                <i data-lucide="rotate-ccw" style="width:15px;height:15px;"></i> Resetear rifa
-              </button>
-            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+  <button onclick="saveConfig()" class="w-full h-14 rounded-2xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+    <i data-lucide="save" style="width:16px;height:16px;"></i>
+    <span>Guardar cambios</span>
+  </button>
+
+  <button onclick="resetRaffle()" class="w-full h-14 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold text-sm hover:bg-red-50 hover:border-red-300 transition-all duration-200 flex items-center justify-center gap-2 shadow-sm">
+    <i data-lucide="rotate-ccw" style="width:16px;height:16px;"></i>
+    <span>Resetear rifa</span>
+  </button>
+</div>
           </div>
         </section>
 
