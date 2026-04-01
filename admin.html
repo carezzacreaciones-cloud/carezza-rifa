@@ -519,7 +519,7 @@
         return;
       }
       const msgText = cfg('payment_message');
-      const waUrl = `https://wa.me/${String(phone).replace(/\\D/g, '')}?text=${encodeURIComponent(msgText)}`;
+      const waUrl = `https://wa.me/${String(phone).replace(/\D/g, '')}?text=${encodeURIComponent(msgText)}`;
       showToast('Abriendo WhatsApp...', '#25d366');
       setTimeout(() => window.open(waUrl, '_blank'), 300);
     }
@@ -527,7 +527,7 @@
 
     function copyClientLink() {
       const url = new URL(window.location.href);
-      url.pathname = url.pathname.replace(/admin\\.html$/, 'cliente.html');
+      url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
       navigator.clipboard.writeText(url.toString()).then(() => showToast('Enlace cliente copiado'));
     }
     window.copyClientLink = copyClientLink;
