@@ -185,7 +185,7 @@
 
     const sectionsCollapsed = {};
     let currentFilter = 'all';
-    let app, db, auth;
+    let app, db, auth, currentUser;
 
     const state = {
       config: {
@@ -212,6 +212,18 @@
     function getPrice() { return parseInt(cfg('price')) || 0; }
     function getRecord(num) { return state.tickets.get(String(num)) || null; }
     function getStatus(num) { return getRecord(num)?.status || 'available'; }
+
+    function configRef() {
+      return doc(db, 'users', currentUser.uid, 'raffles', window.RAFFLE_ID, 'meta', 'config');
+    }
+
+    function ticketsColRef() {
+      return collection(db, 'users', currentUser.uid, 'raffles', window.RAFFLE_ID, 'tickets');
+    }
+
+    function ticketRef(num) {
+      return doc(db, 'users', currentUser.uid, 'raffles', window.RAFFLE_ID, 'tickets', String(num));
+    }
 
     function showToast(msg, color = '#b5a7cb') {
       const t = document.getElementById('toast');
@@ -267,7 +279,7 @@
         updatedAt: serverTimestamp()
       };
 
-      await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), nextConfig, { merge: true });
+      await setDoc(configRef(), nextConfig, { merge: true });
       showToast('Configuración guardada ✓');
     }
     window.saveConfig = saveConfig;
@@ -276,8 +288,7 @@
       const ok = window.confirm('¿Seguro que quieres resetear la rifa? Esto liberará todos los números reservados y pagados.');
       if (!ok) return;
 
-      const ticketsRef = collection(db, 'raffles', window.RAFFLE_ID, 'tickets');
-      const snapshot = await getDocs(ticketsRef);
+      const snapshot = await getDocs(ticketsColRef());
 
       if (snapshot.empty) {
         showToast('La rifa ya está limpia');
@@ -474,7 +485,7 @@
         return;
       }
 
-      await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(num)), {
+      await setDoc(ticketRef(num), {
         number: num,
         status: 'reserved',
         name,
@@ -492,7 +503,7 @@
     async function markPaid(id) {
       const r = getRecord(Number(id));
       if (!r) return;
-      await updateDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(r.number)), {
+      await updateDoc(ticketRef(r.number), {
         status: 'paid',
         paidAt: serverTimestamp()
       });
@@ -503,7 +514,7 @@
     async function freeNumber(id) {
       const r = getRecord(Number(id));
       if (!r) return;
-      await deleteDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(r.number)));
+      await deleteDoc(ticketRef(r.number));
       showToast(`#${r.number} liberado`, '#059669');
     }
     window.freeNumber = freeNumber;
@@ -533,11 +544,10 @@
     window.copyClientLink = copyClientLink;
 
     async function ensureInitialConfig() {
-      const configRef = doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config');
-      const snap = await getDoc(configRef);
+      const snap = await getDoc(configRef());
 
       if (!snap.exists()) {
-        await setDoc(configRef, {
+        await setDoc(configRef(), {
           ...state.config,
           updatedAt: serverTimestamp()
         }, { merge: true });
@@ -545,13 +555,15 @@
     }
 
     async function startApp(user) {
+      currentUser = user;
+
       const userBox = document.getElementById('userBox');
       userBox.classList.remove('hidden');
       userBox.textContent = `Sesión iniciada: ${user.email}`;
 
       await ensureInitialConfig();
 
-      onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
+      onSnapshot(configRef(), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
           state.config = {
@@ -562,7 +574,7 @@
         }
       });
 
-      onSnapshot(collection(db, 'raffles', window.RAFFLE_ID, 'tickets'), (snapshot) => {
+      onSnapshot(ticketsColRef(), (snapshot) => {
         const next = new Map();
         snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
         state.tickets = next;
