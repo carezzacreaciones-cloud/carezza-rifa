@@ -1,12 +1,20 @@
 <!doctype html>
-<html lang="es" class="h-full">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rifa - Reserva tu Número</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Nunito', sans-serif; }
+    .font-heading { font-family: 'Cormorant Garamond', serif; }
+    .ticket-cell { transition: all 0.2s ease; }
+    .ticket-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(181,167,203,0.3); }
+    .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: opacity 0.3s; pointer-events: none; }
+    .fade-in { animation: fadeIn 0.35s ease; }
+    @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0);} }
+  </style>
   <script>
     tailwind.config = {
       theme: {
@@ -16,92 +24,55 @@
             peach: '#f8dcc0',
             lavLight: '#e8e2f0',
             peachLight: '#fdf0e4',
-            lavDark: '#8a7aa6',
+            lavDark: '#8a7aa6'
           }
         }
       }
     }
   </script>
-  <style>
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; font-family: 'Nunito', sans-serif; }
-    .font-heading { font-family: 'Cormorant Garamond', serif; }
-    .fade-in { animation: fadeIn 0.4s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-    .ticket-cell { transition: all 0.2s ease; }
-    .ticket-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(181,167,203,0.3); }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-thumb { background: #b5a7cb; border-radius: 3px; }
-    .toast-msg {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 9999;
-      padding: 12px 24px;
-      border-radius: 12px;
-      font-size: 14px;
-      font-weight: 600;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-      transition: opacity 0.3s;
-      pointer-events: none;
-    }
-  </style>
 </head>
-<body class="h-full bg-white">
-  <div id="app" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
-    <div id="toast" class="toast-msg opacity-0 bg-lavender text-white"></div>
+<body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+  <div id="toast" class="toast-msg opacity-0 bg-lavender text-white"></div>
 
-    <header class="w-full px-4 py-6 sm:px-8 sm:py-8 text-center fade-in">
-      <div class="flex items-center justify-center gap-2 mb-3">
-        <i data-lucide="gift" class="text-lavender" style="width:32px;height:32px;"></i>
-        <h1 id="headerTitle" class="font-heading text-3xl sm:text-5xl font-bold text-lavDark">Gran Rifa</h1>
-      </div>
-      <p class="text-sm text-lavDark/60 font-medium tracking-wide uppercase">¡Reserva tu número y gana!</p>
-    </header>
+  <main class="min-h-screen p-4 sm:p-6">
+    <div class="max-w-5xl mx-auto">
+      <header class="text-center py-6 fade-in">
+        <h1 id="headerTitle" class="font-heading text-4xl sm:text-5xl text-lavDark font-bold">Gran Rifa</h1>
+        <p class="text-sm text-lavDark/60 mt-2">Elige tu número y resérvalo por WhatsApp</p>
+      </header>
 
-    <main class="w-full px-3 sm:px-6 pb-12 max-w-[900px] mx-auto">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 fade-in">
-        <div class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 text-center">
-          <i data-lucide="star" class="text-lavender mx-auto mb-2" style="width:24px;height:24px;"></i>
-          <p class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide mb-1">Premio</p>
-          <p id="infoPrize" class="font-heading text-lg font-bold text-lavDark">Una canasta sorpresa</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 fade-in">
+        <div class="bg-white/90 rounded-2xl border border-lavLight shadow-sm p-4 text-center">
+          <p class="text-xs uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
+          <p id="infoPrize" class="font-heading text-2xl text-lavDark font-bold mt-1">Una canasta sorpresa</p>
         </div>
-        <div class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 text-center">
-          <i data-lucide="tag" class="text-lavender mx-auto mb-2" style="width:24px;height:24px;"></i>
-          <p class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide mb-1">Valor</p>
-          <p id="infoPrice" class="font-heading text-lg font-bold text-lavDark">$2000</p>
+        <div class="bg-white/90 rounded-2xl border border-lavLight shadow-sm p-4 text-center">
+          <p class="text-xs uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
+          <p id="infoPrice" class="font-heading text-2xl text-lavDark font-bold mt-1">$2.000</p>
         </div>
-        <div class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 text-center">
-          <i data-lucide="activity" class="text-lavender mx-auto mb-2" style="width:24px;height:24px;"></i>
-          <p class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide mb-1">Disponibles</p>
-          <p id="infoAvailable" class="font-heading text-lg font-bold text-emerald-600">100</p>
+        <div class="bg-white/90 rounded-2xl border border-lavLight shadow-sm p-4 text-center">
+          <p class="text-xs uppercase tracking-wide text-lavDark/60 font-semibold">Disponibles</p>
+          <p id="infoAvailable" class="font-heading text-2xl text-emerald-600 font-bold mt-1">0</p>
         </div>
       </div>
 
-      <div class="flex gap-2 mb-6 flex-wrap fade-in">
-        <button class="px-4 py-2 rounded-full text-sm font-semibold border transition-colors bg-lavender text-white border-lavender">
-          <i data-lucide="check-circle" style="width:16px;height:16px;display:inline;margin-right:6px;"></i>Ver todos los números
-        </button>
-      </div>
+      <section class="bg-white/90 rounded-2xl border border-lavLight shadow-sm p-4 sm:p-5 fade-in">
+        <div class="flex gap-2 mb-4 flex-wrap">
+          <button onclick="setFilter('all')" id="filterAll" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-lavender text-white border-lavender">Todos</button>
+          <button onclick="setFilter('available')" id="filterAvail" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Disponibles</button>
+          <button onclick="setFilter('reserved')" id="filterReserved" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Reservados</button>
+          <button onclick="setFilter('paid')" id="filterPaid" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Pagados</button>
+        </div>
 
-      <section class="bg-white/80 backdrop-blur rounded-2xl p-6 shadow-sm border border-lavLight/50 fade-in">
-        <div id="ticketGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));"></div>
+        <div id="ticketGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));"></div>
       </section>
+    </div>
+  </main>
 
-      <div class="mt-6 grid grid-cols-3 gap-3 text-center text-xs fade-in">
-        <div class="p-2"><div class="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-semibold mb-1">Disponible</div></div>
-        <div class="p-2"><div class="inline-block bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-semibold mb-1">Reservado</div></div>
-        <div class="p-2"><div class="inline-block bg-violet-100 text-violet-700 px-3 py-1 rounded-full font-semibold mb-1">Confirmado</div></div>
-      </div>
-    </main>
-
-    <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);">
-      <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl fade-in">
-        <h3 id="modalTitle" class="font-heading text-xl font-bold text-lavDark mb-1">Número #01</h3>
-        <p id="modalSubtitle" class="text-xs text-lavDark/60 uppercase tracking-wide mb-4">Completá tus datos para reservar</p>
-        <div id="modalContent"></div>
-      </div>
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);">
+    <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl fade-in">
+      <h3 id="modalTitle" class="font-heading text-2xl text-lavDark font-bold mb-4">Número #01</h3>
+      <div id="modalContent"></div>
     </div>
   </div>
 
@@ -109,16 +80,13 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import {
-      getFirestore,
-      collection,
-      doc,
-      setDoc,
-      getDoc,
-      onSnapshot,
-      serverTimestamp
+      getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     let app, db;
+    let ownerUid = null;
+    let currentFilter = 'all';
+
     const state = {
       config: {
         raffle_name: 'Gran Rifa',
@@ -132,33 +100,6 @@
       tickets: new Map()
     };
 
-    function ensureFirebaseConfig() {
-      if (!window.FIREBASE_CONFIG) {
-        alert('Falta firebase-config.js');
-        throw new Error('Falta firebase-config.js');
-      }
-    }
-
-    function cfg(key) {
-      return state.config[key];
-    }
-
-    function totalNums() {
-      return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100));
-    }
-
-    function getPrice() {
-      return parseInt(cfg('price')) || 0;
-    }
-
-    function getRecord(num) {
-      return state.tickets.get(String(num)) || null;
-    }
-
-    function getStatus(num) {
-      return getRecord(num)?.status || 'available';
-    }
-
     function showToast(msg, color = '#b5a7cb') {
       const t = document.getElementById('toast');
       t.textContent = msg;
@@ -167,48 +108,73 @@
       setTimeout(() => t.style.opacity = '0', 2200);
     }
 
-    function renderAll() {
-      const total = totalNums();
-      const price = getPrice();
-
-      document.getElementById('headerTitle').textContent = cfg('raffle_name');
-      document.getElementById('infoPrize').textContent = cfg('prize');
-      document.getElementById('infoPrice').textContent = '$' + parseInt(price).toLocaleString('es-CL');
-
-      let avail = 0;
-      for (let i = 1; i <= total; i++) {
-        if (getStatus(i) === 'available') avail++;
+    function ensureFirebaseConfig() {
+      if (!window.FIREBASE_CONFIG) {
+        alert('Falta firebase-config.js');
+        throw new Error('Falta firebase-config.js');
       }
-      document.getElementById('infoAvailable').textContent = avail;
-
-      renderGrid(total);
-      lucide.createIcons();
     }
 
-    function renderGrid(total) {
+    function getUidFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('uid');
+    }
+
+    function cfg(key) { return state.config[key]; }
+    function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
+    function getPrice() { return parseInt(cfg('price')) || 0; }
+    function getRecord(num) { return state.tickets.get(String(num)) || null; }
+    function getStatus(num) { return getRecord(num)?.status || 'available'; }
+
+    function configRef() {
+      return doc(db, 'users', ownerUid, 'raffles', window.RAFFLE_ID, 'meta', 'config');
+    }
+
+    function ticketsColRef() {
+      return collection(db, 'users', ownerUid, 'raffles', window.RAFFLE_ID, 'tickets');
+    }
+
+    function ticketRef(num) {
+      return doc(db, 'users', ownerUid, 'raffles', window.RAFFLE_ID, 'tickets', String(num));
+    }
+
+    function renderAll() {
+      document.getElementById('headerTitle').textContent = cfg('raffle_name');
+      document.getElementById('infoPrize').textContent = cfg('prize');
+      document.getElementById('infoPrice').textContent = '$' + getPrice().toLocaleString('es-CL');
+
+      let available = 0;
+      for (let i = 1; i <= totalNums(); i++) {
+        if (getStatus(i) === 'available') available++;
+      }
+      document.getElementById('infoAvailable').textContent = available;
+      renderGrid();
+    }
+
+    function renderGrid() {
       const grid = document.getElementById('ticketGrid');
       grid.innerHTML = '';
 
-      for (let i = 1; i <= total; i++) {
-        const s = getStatus(i);
-        const el = document.createElement('div');
-        const isClickable = s === 'available';
+      for (let i = 1; i <= totalNums(); i++) {
+        const status = getStatus(i);
+        const visible = currentFilter === 'all' || currentFilter === status || (currentFilter === 'available' && status === 'available');
+        if (!visible) continue;
 
-        let bg, text, border;
-        if (s === 'paid') {
-          bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd';
-        } else if (s === 'reserved') {
-          bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d';
+        let bg, text, border, cursor;
+        if (status === 'paid') {
+          bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd'; cursor = 'not-allowed';
+        } else if (status === 'reserved') {
+          bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d'; cursor = 'not-allowed';
         } else {
-          bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0';
+          bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0'; cursor = 'pointer';
         }
 
+        const el = document.createElement('div');
         el.className = 'ticket-cell';
-        el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:6px 2px;text-align:center;font-weight:700;font-size:14px;cursor:${isClickable ? 'pointer' : 'not-allowed'};display:block;position:relative;opacity:${isClickable ? '1' : '0.6'};pointer-events:${isClickable ? 'auto' : 'none'};`;
-        el.title = getRecord(i)?.name || '';
+        el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:8px 2px;text-align:center;font-weight:700;font-size:14px;cursor:${cursor};position:relative;`;
         el.textContent = String(i).padStart(2, '0');
 
-        if (isClickable) {
+        if (status === 'available') {
           el.addEventListener('click', () => openModal(i));
         }
 
@@ -216,46 +182,48 @@
       }
     }
 
-    function openModal(num) {
-      const modal = document.getElementById('modal');
-      document.getElementById('modalTitle').textContent = `Número #${String(num).padStart(2, '0')}`;
-      document.getElementById('modalSubtitle').textContent = 'Completá tus datos para reservar';
+    function setFilter(f) {
+      currentFilter = f;
+      ['All','Avail','Reserved','Paid'].forEach(k => {
+        const btn = document.getElementById('filter' + k);
+        const active = f === k.toLowerCase() || (f === 'all' && k === 'All') || (f === 'available' && k === 'Avail');
+        btn.className = `px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${active ? 'bg-lavender text-white border-lavender' : 'border-lavLight text-lavDark/60 hover:bg-lavLight/30'}`;
+      });
+      renderGrid();
+    }
+    window.setFilter = setFilter;
 
-      const content = document.getElementById('modalContent');
-      content.innerHTML = `
+    function openModal(num) {
+      document.getElementById('modalTitle').textContent = `Número #${String(num).padStart(2, '0')}`;
+      document.getElementById('modalContent').innerHTML = `
         <div class="space-y-3">
           <div>
             <label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
-            <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="Tu nombre" />
+            <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
           </div>
           <div>
-            <label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono/WhatsApp</label>
-            <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="Ej: 56912345678" />
+            <label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono</label>
+            <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
           </div>
-          <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors flex items-center justify-center gap-2">
-            Reservar por WhatsApp
-          </button>
-          <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">
-            Cancelar
-          </button>
-        </div>`;
-
-      content.querySelector('#reserveBtn').addEventListener('click', () => doReserve(num));
-      content.querySelector('#cancelBtn').addEventListener('click', closeModal);
-
-      modal.style.display = 'flex';
-      lucide.createIcons();
+          <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors">Reservar</button>
+          <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+        </div>
+      `;
+      document.getElementById('reserveBtn').addEventListener('click', () => reserveNumber(num));
+      document.getElementById('cancelBtn').addEventListener('click', closeModal);
+      document.getElementById('modal').style.display = 'flex';
     }
 
     function closeModal() {
       document.getElementById('modal').style.display = 'none';
     }
+    window.closeModal = closeModal;
 
-    document.getElementById('modal').addEventListener('click', e => {
+    document.getElementById('modal').addEventListener('click', (e) => {
       if (e.target === e.currentTarget) closeModal();
     });
 
-    async function doReserve(num) {
+    async function reserveNumber(num) {
       const name = document.getElementById('mName')?.value?.trim();
       const phone = document.getElementById('mPhone')?.value?.trim();
 
@@ -264,13 +232,17 @@
         return;
       }
 
-      const wa = String(cfg('whatsapp')).replace(/\D/g, '');
-      const msgBase = cfg('reserve_message');
-      const price = getPrice();
+      const fresh = await getDoc(ticketRef(num));
+      if (fresh.exists()) {
+        const data = fresh.data();
+        if (data.status === 'reserved' || data.status === 'paid') {
+          showToast('Ese número ya no está disponible', '#e57373');
+          closeModal();
+          return;
+        }
+      }
 
-      const fullMsg = `${msgBase}\n\nNúmero: #${String(num).padStart(2, '0')}\nPrecio: $${price.toLocaleString('es-CL')}\n\nMis datos:\nNombre: ${name}\nTeléfono: ${phone}`;
-
-      await setDoc(doc(db, 'raffles', window.RAFFLE_ID, 'tickets', String(num)), {
+      await setDoc(ticketRef(num), {
         number: num,
         status: 'reserved',
         name,
@@ -280,32 +252,45 @@
         paidAt: null
       }, { merge: true });
 
+      const wa = String(cfg('whatsapp')).replace(/\D/g, '');
+      const fullMsg = `${cfg('reserve_message')}
+
+Número: #${String(num).padStart(2,'0')}
+Precio: $${getPrice().toLocaleString('es-CL')}
+
+Mis datos:
+Nombre: ${name}
+Teléfono: ${phone}
+
+${cfg('payment_message')}`;
+
+      showToast('Número reservado. Abriendo WhatsApp...', '#059669');
       closeModal();
-      showToast('¡Número reservado! Abriendo WhatsApp...', '#059669');
-      setTimeout(() => window.open(`https://wa.me/${wa}?text=${encodeURIComponent(fullMsg)}`, '_blank'), 500);
-    }
-
-    async function ensureInitialConfig() {
-      const configRef = doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config');
-      const snap = await getDoc(configRef);
-
-      if (!snap.exists()) {
-        await setDoc(configRef, {
-          ...state.config,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      }
+      setTimeout(() => {
+        window.open(`https://wa.me/${wa}?text=${encodeURIComponent(fullMsg)}`, '_blank');
+      }, 350);
     }
 
     async function init() {
       ensureFirebaseConfig();
+      ownerUid = getUidFromUrl();
+
+      if (!ownerUid) {
+        document.body.innerHTML = `
+          <main class="min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace incompleto</h1>
+              <p class="text-lavDark/70">Falta el identificador del dueño de la rifa en la URL.</p>
+            </div>
+          </main>
+        `;
+        return;
+      }
 
       app = initializeApp(window.FIREBASE_CONFIG);
       db = getFirestore(app);
 
-      await ensureInitialConfig();
-
-      onSnapshot(doc(db, 'raffles', window.RAFFLE_ID, 'meta', 'config'), (snap) => {
+      onSnapshot(configRef(), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
           state.config = {
@@ -316,7 +301,7 @@
         }
       });
 
-      onSnapshot(collection(db, 'raffles', window.RAFFLE_ID, 'tickets'), (snapshot) => {
+      onSnapshot(ticketsColRef(), (snapshot) => {
         const next = new Map();
         snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
         state.tickets = next;
@@ -324,12 +309,11 @@
       });
 
       renderAll();
-      lucide.createIcons();
     }
 
     init().catch(err => {
       console.error(err);
-      alert('Error iniciando Firebase. Revisa firebase-config.js y las reglas.');
+      alert('Error iniciando cliente. Revisa el uid en la URL y las reglas de Firestore.');
     });
   </script>
 </body>
