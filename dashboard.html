@@ -27,47 +27,289 @@
   </script>
 </head>
 <body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
-  <main class="min-h-screen flex items-center justify-center p-4">
-    <section class="w-full max-w-xl bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 text-center">
-      <h1 class="font-heading text-4xl text-lavDark font-bold mb-2">Dashboard</h1>
-      <p class="text-sm text-lavDark/60 mb-6">Panel inicial del usuario</p>
+  <main class="min-h-screen p-4 sm:p-6">
+    <div class="max-w-5xl mx-auto">
+      <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
+        <div class="text-center">
+          <h1 class="font-heading text-4xl text-lavDark font-bold">Mis Rifas</h1>
+          <p class="text-sm text-lavDark/60 mt-2">Crea, administra y comparte tus rifas</p>
+          <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
+        </div>
 
-      <div id="userBox" class="rounded-2xl bg-peachLight px-4 py-3 text-lavDark mb-6 hidden"></div>
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input
+              id="raffleNameInput"
+              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+              placeholder="Ej: Rifa Día de la Madre"
+            />
+            <input
+              id="raffleSlugInput"
+              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+              placeholder="Slug opcional: rifa-dia-madre"
+            />
+          </div>
+          <button
+            id="createRaffleBtn"
+            class="h-12 px-5 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
+          >
+            Crear rifa
+          </button>
+        </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <a href="admin.html" class="w-full h-12 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center">
-          Ir al admin actual
-        </a>
-        <a href="cliente.html" class="w-full h-12 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
-          Ir al cliente actual
-        </a>
-      </div>
+        <div class="flex flex-wrap gap-3 mt-4">
+          <button
+            id="logoutBtn"
+            class="h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition"
+          >
+            Cerrar sesión
+          </button>
+        </div>
 
-      <button id="logoutBtn" class="mt-4 w-full h-12 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition">
-        Cerrar sesión
-      </button>
-    </section>
+        <div id="statusBox" class="mt-4 text-sm rounded-2xl px-4 py-3 bg-peachLight text-lavDark/80 hidden"></div>
+      </section>
+
+      <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="font-heading text-3xl text-lavDark font-bold">Tus rifas</h2>
+          <span id="countBox" class="text-sm text-lavDark/60">0 rifas</span>
+        </div>
+
+        <div id="rafflesList" class="grid grid-cols-1 gap-4">
+          <p class="text-lavDark/50">Aún no tienes rifas creadas.</p>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script src="firebase-config.js"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
     import {
-      getAuth,
-      onAuthStateChanged,
-      signOut
-    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      onSnapshot,
+      serverTimestamp,
+      getDoc
+    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+
+    const defaultConfig = {
+      raffle_name: 'Gran Rifa',
+      prize: 'Una canasta sorpresa',
+      price: '2000',
+      whatsapp: '56933024232',
+      reserve_message: 'Hola, quiero reservar un número de la rifa y realizar el pago.',
+      payment_message: 'Para confirmar tu número, realiza el pago y envía el comprobante. Transferencia a: [TUS DATOS AQUÍ]',
+      total_numbers: '100'
+    };
+
+    let app, auth, db, currentUser = null, unsubscribeRaffles = null;
+
+    function showStatus(message, isError = false) {
+      const box = document.getElementById('statusBox');
+      box.textContent = message;
+      box.classList.remove('hidden');
+      box.className = 'mt-4 text-sm rounded-2xl px-4 py-3 ' + (
+        isError ? 'bg-red-50 text-red-600' : 'bg-peachLight text-lavDark/80'
+      );
+    }
+
+    function clearStatus() {
+      const box = document.getElementById('statusBox');
+      box.classList.add('hidden');
+      box.textContent = '';
+    }
+
+    function slugify(text) {
+      return String(text || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-')
+        .slice(0, 50);
+    }
+
+    function rafflesColRef() {
+      return collection(db, 'users', currentUser.uid, 'raffles');
+    }
+
+    function raffleDocRef(raffleId) {
+      return doc(db, 'users', currentUser.uid, 'raffles', raffleId);
+    }
+
+    function raffleConfigRef(raffleId) {
+      return doc(db, 'users', currentUser.uid, 'raffles', raffleId, 'meta', 'config');
+    }
+
+    async function ensureRootRaffleDoc(raffleId, raffleName) {
+      await setDoc(raffleDocRef(raffleId), {
+        raffle_id: raffleId,
+        raffle_name: raffleName,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
+    async function ensureRaffleConfig(raffleId, raffleName) {
+      const snap = await getDoc(raffleConfigRef(raffleId));
+      if (!snap.exists()) {
+        await setDoc(raffleConfigRef(raffleId), {
+          ...defaultConfig,
+          raffle_name: raffleName || defaultConfig.raffle_name,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      }
+    }
+
+    async function createRaffle() {
+      clearStatus();
+
+      const nameInput = document.getElementById('raffleNameInput');
+      const slugInput = document.getElementById('raffleSlugInput');
+
+      const raffleName = nameInput.value.trim();
+      let raffleId = slugify(slugInput.value.trim());
+
+      if (!raffleName) {
+        showStatus('Debes escribir un nombre para la rifa.', true);
+        return;
+      }
+
+      if (!raffleId) {
+        raffleId = slugify(raffleName);
+      }
+
+      if (!raffleId) {
+        showStatus('No se pudo generar un identificador para la rifa.', true);
+        return;
+      }
+
+      try {
+        await ensureRootRaffleDoc(raffleId, raffleName);
+        await ensureRaffleConfig(raffleId, raffleName);
+
+        nameInput.value = '';
+        slugInput.value = '';
+
+        showStatus('Rifa creada correctamente.');
+      } catch (error) {
+        console.error(error);
+        showStatus('Error al crear la rifa.', true);
+      }
+    }
+
+    function renderRaffles(docs) {
+      const list = document.getElementById('rafflesList');
+      const countBox = document.getElementById('countBox');
+
+      countBox.textContent = `${docs.length} ${docs.length === 1 ? 'rifa' : 'rifas'}`;
+
+      if (!docs.length) {
+        list.innerHTML = '<p class="text-lavDark/50">Aún no tienes rifas creadas.</p>';
+        return;
+      }
+
+      list.innerHTML = '';
+
+      docs.forEach((item) => {
+        const raffleId = item.id;
+        const data = item.data();
+        const displayName = data.raffle_name || raffleId;
+
+        const adminUrl = `admin.html?raffle=${encodeURIComponent(raffleId)}`;
+        const clientUrl = `cliente.html?uid=${encodeURIComponent(currentUser.uid)}&raffle=${encodeURIComponent(raffleId)}`;
+
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
+
+        card.innerHTML = `
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
+              <p class="text-sm text-lavDark/60 mt-1">ID: ${raffleId}</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full md:w-auto">
+              <a
+                href="${adminUrl}"
+                class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center"
+              >
+                Abrir admin
+              </a>
+
+              <a
+                href="${clientUrl}"
+                target="_blank"
+                class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center"
+              >
+                Abrir cliente
+              </a>
+
+              <button
+                class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
+                data-url="${clientUrl}"
+              >
+                Copiar link
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.copy-client-btn').addEventListener('click', async (e) => {
+          const url = e.currentTarget.dataset.url;
+          await navigator.clipboard.writeText(new URL(url, window.location.href).toString());
+          showStatus('Enlace cliente copiado.');
+        });
+
+        list.appendChild(card);
+      });
+    }
+
+    function startRafflesListener() {
+      if (unsubscribeRaffles) unsubscribeRaffles();
+
+      unsubscribeRaffles = onSnapshot(rafflesColRef(), (snapshot) => {
+        const docs = snapshot.docs.sort((a, b) => {
+          const av = a.data().raffle_name || a.id;
+          const bv = b.data().raffle_name || b.id;
+          return av.localeCompare(bv, 'es');
+        });
+
+        renderRaffles(docs);
+      });
+    }
+
+    function initProtectedArea(user) {
+      currentUser = user;
+
+      const userBox = document.getElementById('userBox');
+      userBox.classList.remove('hidden');
+      userBox.textContent = `Sesión iniciada: ${user.email}`;
+
+      startRafflesListener();
+    }
+
+    document.getElementById('createRaffleBtn').addEventListener('click', createRaffle);
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await signOut(auth);
+      window.location.href = 'login.html';
+    });
 
     if (!window.FIREBASE_CONFIG) {
       alert('Falta firebase-config.js');
       throw new Error('Falta firebase-config.js');
     }
 
-    const app = initializeApp(window.FIREBASE_CONFIG);
-    const auth = getAuth(app);
-
-    const userBox = document.getElementById('userBox');
-    const logoutBtn = document.getElementById('logoutBtn');
+    app = initializeApp(window.FIREBASE_CONFIG);
+    auth = getAuth(app);
+    db = getFirestore(app);
 
     onAuthStateChanged(auth, (user) => {
       if (!user) {
@@ -75,18 +317,16 @@
         return;
       }
 
-      userBox.classList.remove('hidden');
-      userBox.textContent = `Sesión iniciada: ${user.email}`;
-    });
-
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        await signOut(auth);
-        window.location.href = 'login.html';
-      } catch (error) {
-        alert(error.message);
-      }
+      initProtectedArea(user);
     });
   </script>
 </body>
 </html>
+"""
+
+path = "/mnt/data/dashboard_real_rifas_v3.html"
+with open(path, "w", encoding="utf-8") as f:
+    f.write(dashboard)
+
+print(path)
+【อ่านข้อความเต็มanalysis to=python_user_visible.exec code omitted 1 lines】
