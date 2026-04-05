@@ -32,7 +32,20 @@
     .ticket-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(181,167,203,0.3); }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-thumb { background: #b5a7cb; border-radius: 3px; }
-    .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: opacity 0.3s; pointer-events: none; }
+    .toast-msg {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body class="h-full bg-white">
@@ -186,6 +199,8 @@
     const sectionsCollapsed = {};
     let currentFilter = 'all';
     let app, db, auth, currentUser;
+    const DEFAULT_RAFFLE_ID = 'gran-rifa';
+    let currentRaffleId = DEFAULT_RAFFLE_ID;
 
     const state = {
       config: {
@@ -207,6 +222,11 @@
       }
     }
 
+    function getRaffleIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('raffle') || DEFAULT_RAFFLE_ID;
+    }
+
     function cfg(key) { return state.config[key]; }
     function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
     function getPrice() { return parseInt(cfg('price')) || 0; }
@@ -214,15 +234,15 @@
     function getStatus(num) { return getRecord(num)?.status || 'available'; }
 
     function configRef() {
-      return doc(db, 'users', currentUser.uid, 'raffles', window.RAFFLE_ID, 'meta', 'config');
+      return doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId, 'meta', 'config');
     }
 
     function ticketsColRef() {
-      return collection(db, 'users', currentUser.uid, 'raffles', window.RAFFLE_ID, 'tickets');
+      return collection(db, 'users', currentUser.uid, 'raffles', currentRaffleId, 'tickets');
     }
 
     function ticketRef(num) {
-      return doc(db, 'users', currentUser.uid, 'raffles', window.RAFFLE_ID, 'tickets', String(num));
+      return doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId, 'tickets', String(num));
     }
 
     function showToast(msg, color = '#b5a7cb') {
@@ -280,6 +300,12 @@
       };
 
       await setDoc(configRef(), nextConfig, { merge: true });
+      await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
+        raffle_id: currentRaffleId,
+        raffle_name: nextConfig.raffle_name,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+
       showToast('Configuración guardada ✓');
     }
     window.saveConfig = saveConfig;
@@ -536,21 +562,17 @@
     }
     window.sendPaymentMessage = sendPaymentMessage;
 
-    //function copyClientLink() {
-     // const url = new URL(window.location.href);
-      //url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
-     // navigator.clipboard.writeText(url.toString()).then(() => showToast('Enlace cliente copiado'));
-   // }
     function copyClientLink() {
-  if (!currentUser) {
-    showToast('No hay usuario activo', '#e57373');
-    return;
-  }
-  const url = new URL(window.location.href);
-  url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
-  url.searchParams.set('uid', currentUser.uid);
-  navigator.clipboard.writeText(url.toString()).then(() => showToast('Enlace cliente copiado'));
-}
+      if (!currentUser) {
+        showToast('No hay usuario activo', '#e57373');
+        return;
+      }
+      const url = new URL(window.location.href);
+      url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
+      url.searchParams.set('uid', currentUser.uid);
+      url.searchParams.set('raffle', currentRaffleId);
+      navigator.clipboard.writeText(url.toString()).then(() => showToast('Enlace cliente copiado'));
+    }
     window.copyClientLink = copyClientLink;
 
     async function ensureInitialConfig() {
@@ -562,18 +584,26 @@
           updatedAt: serverTimestamp()
         }, { merge: true });
       }
+
+      await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
+        raffle_id: currentRaffleId,
+        raffle_name: state.config.raffle_name,
+        updatedAt: serverTimestamp()
+      }, { merge: true });
     }
 
     async function startApp(user) {
       currentUser = user;
+      currentRaffleId = getRaffleIdFromUrl();
+
       const clientLink = document.getElementById('clientViewLink');
-if (clientLink) {
-  clientLink.href = `cliente.html?uid=${encodeURIComponent(user.uid)}`;
-}
+      if (clientLink) {
+        clientLink.href = `cliente.html?uid=${encodeURIComponent(user.uid)}&raffle=${encodeURIComponent(currentRaffleId)}`;
+      }
 
       const userBox = document.getElementById('userBox');
       userBox.classList.remove('hidden');
-      userBox.textContent = `Sesión iniciada: ${user.email}`;
+      userBox.textContent = `Sesión iniciada: ${user.email} · Rifa: ${currentRaffleId}`;
 
       await ensureInitialConfig();
 
