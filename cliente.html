@@ -11,9 +11,25 @@
     .font-heading { font-family: 'Cormorant Garamond', serif; }
     .ticket-cell { transition: all 0.2s ease; }
     .ticket-cell:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(181,167,203,0.3); }
-    .toast-msg { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 20px rgba(0,0,0,0.15); transition: opacity 0.3s; pointer-events: none; }
+    .toast-msg {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
     .fade-in { animation: fadeIn 0.35s ease; }
-    @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0);} }
+    @keyframes fadeIn {
+      from { opacity:0; transform: translateY(8px); }
+      to { opacity:1; transform: translateY(0);}
+    }
   </style>
   <script>
     tailwind.config = {
@@ -46,10 +62,12 @@
           <p class="text-xs uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
           <p id="infoPrize" class="font-heading text-2xl text-lavDark font-bold mt-1">Una canasta sorpresa</p>
         </div>
+
         <div class="bg-white/90 rounded-2xl border border-lavLight shadow-sm p-4 text-center">
           <p class="text-xs uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
           <p id="infoPrice" class="font-heading text-2xl text-lavDark font-bold mt-1">$2.000</p>
         </div>
+
         <div class="bg-white/90 rounded-2xl border border-lavLight shadow-sm p-4 text-center">
           <p class="text-xs uppercase tracking-wide text-lavDark/60 font-semibold">Disponibles</p>
           <p id="infoAvailable" class="font-heading text-2xl text-emerald-600 font-bold mt-1">0</p>
@@ -80,12 +98,20 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import {
-      getFirestore, collection, doc, setDoc, getDoc, onSnapshot, serverTimestamp
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      getDoc,
+      onSnapshot,
+      serverTimestamp
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     let app, db;
     let ownerUid = null;
     let currentFilter = 'all';
+    const DEFAULT_RAFFLE_ID = 'gran-rifa';
+    let currentRaffleId = DEFAULT_RAFFLE_ID;
 
     const state = {
       config: {
@@ -120,6 +146,11 @@
       return params.get('uid');
     }
 
+    function getRaffleIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('raffle') || DEFAULT_RAFFLE_ID;
+    }
+
     function cfg(key) { return state.config[key]; }
     function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
     function getPrice() { return parseInt(cfg('price')) || 0; }
@@ -127,15 +158,15 @@
     function getStatus(num) { return getRecord(num)?.status || 'available'; }
 
     function configRef() {
-      return doc(db, 'users', ownerUid, 'raffles', window.RAFFLE_ID, 'meta', 'config');
+      return doc(db, 'users', ownerUid, 'raffles', currentRaffleId, 'meta', 'config');
     }
 
     function ticketsColRef() {
-      return collection(db, 'users', ownerUid, 'raffles', window.RAFFLE_ID, 'tickets');
+      return collection(db, 'users', ownerUid, 'raffles', currentRaffleId, 'tickets');
     }
 
     function ticketRef(num) {
-      return doc(db, 'users', ownerUid, 'raffles', window.RAFFLE_ID, 'tickets', String(num));
+      return doc(db, 'users', ownerUid, 'raffles', currentRaffleId, 'tickets', String(num));
     }
 
     function renderAll() {
@@ -264,6 +295,7 @@ Teléfono: ${phone}`;
 
       showToast('Número reservado. Abriendo WhatsApp...', '#059669');
       closeModal();
+
       setTimeout(() => {
         window.open(`https://wa.me/${wa}?text=${encodeURIComponent(fullMsg)}`, '_blank');
       }, 350);
@@ -272,6 +304,7 @@ Teléfono: ${phone}`;
     async function init() {
       ensureFirebaseConfig();
       ownerUid = getUidFromUrl();
+      currentRaffleId = getRaffleIdFromUrl();
 
       if (!ownerUid) {
         document.body.innerHTML = `
@@ -311,7 +344,7 @@ Teléfono: ${phone}`;
 
     init().catch(err => {
       console.error(err);
-      alert('Error iniciando cliente. Revisa el uid en la URL y las reglas de Firestore.');
+      alert('Error iniciando cliente. Revisa el uid, raffle y las reglas de Firestore.');
     });
   </script>
 </body>
