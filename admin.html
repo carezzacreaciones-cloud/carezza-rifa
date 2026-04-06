@@ -582,22 +582,35 @@
     window.copyClientLink = copyClientLink;
 
     async function ensureInitialConfig() {
-      const snap = await getDoc(configRef());
+  const configSnap = await getDoc(configRef());
 
-      if (!snap.exists()) {
-        await setDoc(configRef(), {
-          ...state.config,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      }
+  if (!configSnap.exists()) {
+    await setDoc(configRef(), {
+      ...state.config,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
 
-      await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
-        raffle_id: currentRaffleId,
-        raffle_name: state.config.raffle_name,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    }
+    await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
+      raffle_id: currentRaffleId,
+      raffle_name: state.config.raffle_name,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
 
+    return;
+  }
+
+  const raffleRootRef = doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId);
+  const raffleRootSnap = await getDoc(raffleRootRef);
+
+  if (!raffleRootSnap.exists()) {
+    const configData = configSnap.data();
+    await setDoc(raffleRootRef, {
+      raffle_id: currentRaffleId,
+      raffle_name: configData?.raffle_name || state.config.raffle_name,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  }
+}
     async function startApp(user) {
       currentUser = user;
       currentRaffleId = getRaffleIdFromUrl();
