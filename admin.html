@@ -307,11 +307,14 @@
       };
 
       await setDoc(configRef(), nextConfig, { merge: true });
-      await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
-        raffle_id: currentRaffleId,
-        raffle_name: nextConfig.raffle_name,
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+     await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
+  raffle_id: currentRaffleId,
+  raffle_name: nextConfig.raffle_name,
+  prize: nextConfig.prize,
+  price: nextConfig.price,
+  total_numbers: nextConfig.total_numbers,
+  updatedAt: serverTimestamp()
+}, { merge: true });
 
       showToast('Configuración guardada ✓');
     }
@@ -595,11 +598,14 @@
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-    await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
-      raffle_id: currentRaffleId,
-      raffle_name: state.config.raffle_name,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+   await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
+  raffle_id: currentRaffleId,
+  raffle_name: state.config.raffle_name,
+  prize: state.config.prize,
+  price: state.config.price,
+  total_numbers: state.config.total_numbers,
+  updatedAt: serverTimestamp()
+}, { merge: true });
 
     return;
   }
@@ -609,11 +615,14 @@
 
   if (!raffleRootSnap.exists()) {
     const configData = configSnap.data();
-    await setDoc(raffleRootRef, {
-      raffle_id: currentRaffleId,
-      raffle_name: configData?.raffle_name || state.config.raffle_name,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
+   await setDoc(raffleRootRef, {
+  raffle_id: currentRaffleId,
+  raffle_name: configData?.raffle_name || state.config.raffle_name,
+  prize: configData?.prize || state.config.prize,
+  price: configData?.price || state.config.price,
+  total_numbers: configData?.total_numbers || state.config.total_numbers,
+  updatedAt: serverTimestamp()
+}, { merge: true });
   }
 }
     async function startApp(user) {
