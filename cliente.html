@@ -110,8 +110,8 @@
     let app, db;
     let ownerUid = null;
     let currentFilter = 'all';
-    const DEFAULT_RAFFLE_ID = 'gran-rifa';
-    let currentRaffleId = DEFAULT_RAFFLE_ID;
+    let currentRaffleId = null;
+    let currentShareId = null;
 
     const state = {
       config: {
@@ -141,10 +141,10 @@
       }
     }
 
-    function getUidFromUrl() {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('uid');
-    }
+    function getShareIdFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('share');
+}
 
     function getRaffleIdFromUrl() {
       const params = new URLSearchParams(window.location.search);
@@ -168,6 +168,9 @@
     function ticketRef(num) {
       return doc(db, 'users', ownerUid, 'raffles', currentRaffleId, 'tickets', String(num));
     }
+    function publicRaffleRef(shareId) {
+  return doc(db, 'public_raffles', shareId);
+}
 
     function renderAll() {
       document.getElementById('headerTitle').textContent = cfg('raffle_name');
@@ -301,46 +304,76 @@ Teléfono: ${phone}`;
       }, 350);
     }
 
-    async function init() {
-      ensureFirebaseConfig();
-      ownerUid = getUidFromUrl();
-      currentRaffleId = getRaffleIdFromUrl();
+async function init() {
+  ensureFirebaseConfig();
 
-      if (!ownerUid) {
-        document.body.innerHTML = `
-          <main class="min-h-screen flex items-center justify-center p-4">
-            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
-              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace incompleto</h1>
-              <p class="text-lavDark/70">Falta el identificador del dueño de la rifa en la URL.</p>
-            </div>
-          </main>
-        `;
-        return;
-      }
+  currentShareId = getShareIdFromUrl();
 
-      app = initializeApp(window.FIREBASE_CONFIG);
-      db = getFirestore(app);
+  if (!currentShareId) {
+    document.body.innerHTML = `
+      <main class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+          <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace incompleto</h1>
+          <p class="text-lavDark/70">Falta el identificador público de la rifa en la URL.</p>
+        </div>
+      </main>
+    `;
+    return;
+  }
 
-      onSnapshot(configRef(), (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          state.config = {
-            ...state.config,
-            ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
-          };
-          renderAll();
-        }
-      });
+  app = initializeApp(window.FIREBASE_CONFIG);
+  db = getFirestore(app);
 
-      onSnapshot(ticketsColRef(), (snapshot) => {
-        const next = new Map();
-        snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
-        state.tickets = next;
-        renderAll();
-      });
+  const publicSnap = await getDoc(publicRaffleRef(currentShareId));
 
+  if (!publicSnap.exists()) {
+    document.body.innerHTML = `
+      <main class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+          <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Rifa no encontrada</h1>
+          <p class="text-lavDark/70">Este enlace no corresponde a una rifa disponible.</p>
+        </div>
+      </main>
+    `;
+    return;
+  }
+
+  const publicData = publicSnap.data();
+  ownerUid = publicData.owner_uid;
+  currentRaffleId = publicData.raffle_id;
+
+  if (!ownerUid || !currentRaffleId) {
+    document.body.innerHTML = `
+      <main class="min-h-screen flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+          <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace inválido</h1>
+          <p class="text-lavDark/70">Faltan datos para cargar la rifa.</p>
+        </div>
+      </main>
+    `;
+    return;
+  }
+
+  onSnapshot(configRef(), (snap) => {
+    if (snap.exists()) {
+      const data = snap.data();
+      state.config = {
+        ...state.config,
+        ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
+      };
       renderAll();
     }
+  });
+
+  onSnapshot(ticketsColRef(), (snapshot) => {
+    const next = new Map();
+    snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
+    state.tickets = next;
+    renderAll();
+  });
+
+  renderAll();
+}
 
     init().catch(err => {
       console.error(err);
