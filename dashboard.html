@@ -136,6 +136,9 @@
         .replace(/-{2,}/g, '-')
         .slice(0, 50);
     }
+    function generateShareId() {
+  return 'share-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+}
 
     function rafflesColRef() {
       return collection(db, 'users', currentUser.uid, 'raffles');
@@ -148,18 +151,31 @@
     function raffleConfigRef(raffleId) {
       return doc(db, 'users', currentUser.uid, 'raffles', raffleId, 'meta', 'config');
     }
+    function publicRaffleRef(shareId) {
+  return doc(db, 'public_raffles', shareId);
+}
     function raffleTicketsColRef(raffleId) {
   return collection(db, 'users', currentUser.uid, 'raffles', raffleId, 'tickets');
 }
 
-    async function ensureRootRaffleDoc(raffleId, raffleName) {
-      await setDoc(raffleDocRef(raffleId), {
-        raffle_id: raffleId,
-        raffle_name: raffleName,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    }
+    async function ensureRootRaffleDoc(raffleId, raffleName, shareId) {
+  await setDoc(raffleDocRef(raffleId), {
+    raffle_id: raffleId,
+    raffle_name: raffleName,
+    public_share_id: shareId,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
+    async function ensurePublicRaffleDoc(shareId, raffleId, raffleName) {
+  await setDoc(publicRaffleRef(shareId), {
+    owner_uid: currentUser.uid,
+    raffle_id: raffleId,
+    raffle_name: raffleName,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  }, { merge: true });
+}
 
     async function ensureRaffleConfig(raffleId, raffleName) {
       const snap = await getDoc(raffleConfigRef(raffleId));
@@ -197,8 +213,11 @@
       }
 
       try {
-        await ensureRootRaffleDoc(raffleId, raffleName);
-        await ensureRaffleConfig(raffleId, raffleName);
+  const shareId = generateShareId();
+
+  await ensureRootRaffleDoc(raffleId, raffleName, shareId);
+  await ensurePublicRaffleDoc(shareId, raffleId, raffleName);
+  await ensureRaffleConfig(raffleId, raffleName);
 
         nameInput.value = '';
         slugInput.value = '';
@@ -252,9 +271,11 @@
         const raffleId = item.id;
         const data = item.data();
         const displayName = data.raffle_name || raffleId;
+        if (!data.public_share_id) return;
 
         const adminUrl = `admin.html?raffle=${encodeURIComponent(raffleId)}`;
-        const clientUrl = `cliente.html?uid=${encodeURIComponent(currentUser.uid)}&raffle=${encodeURIComponent(raffleId)}`;
+        const shareId = data.public_share_id;
+const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
 
         const card = document.createElement('div');
         card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
