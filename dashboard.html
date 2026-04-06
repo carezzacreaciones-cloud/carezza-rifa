@@ -148,6 +148,9 @@
     function raffleConfigRef(raffleId) {
       return doc(db, 'users', currentUser.uid, 'raffles', raffleId, 'meta', 'config');
     }
+    function raffleTicketsColRef(raffleId) {
+  return collection(db, 'users', currentUser.uid, 'raffles', raffleId, 'tickets');
+}
 
     async function ensureRootRaffleDoc(raffleId, raffleName) {
       await setDoc(raffleDocRef(raffleId), {
@@ -206,6 +209,31 @@
         showStatus('Error al crear la rifa.', true);
       }
     }
+    async function deleteRaffle(raffleId, raffleName) {
+  const ok = window.confirm(`¿Seguro que quieres borrar la rifa "${raffleName}"? Esta acción eliminará tickets, configuración y la rifa del panel.`);
+  if (!ok) return;
+
+  try {
+    const ticketsSnap = await getDocs(raffleTicketsColRef(raffleId));
+
+    if (!ticketsSnap.empty) {
+      const docs = ticketsSnap.docs;
+      for (let i = 0; i < docs.length; i += 400) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      }
+    }
+
+    await deleteDoc(raffleConfigRef(raffleId));
+    await deleteDoc(raffleDocRef(raffleId));
+
+    showStatus(`Rifa "${raffleName}" eliminada correctamente.`);
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al eliminar la rifa.', true);
+  }
+}
 
     function renderRaffles(docs) {
       const list = document.getElementById('rafflesList');
@@ -238,30 +266,20 @@
               <p class="text-sm text-lavDark/60 mt-1">ID: ${raffleId}</p>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full md:w-auto">
-              <a
-                href="${adminUrl}"
-                class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center"
-              >
-                Abrir admin
-              </a>
-
-              <a
-                href="${clientUrl}"
-                target="_blank"
-                class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center"
-              >
-                Abrir cliente
-              </a>
-
-              <button
-                class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
-                data-url="${clientUrl}"
-              >
-                Copiar link
-              </button>
-            </div>
-          </div>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full md:w-auto">
+  <a href="${adminUrl}" class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center">
+    Abrir admin
+  </a>
+  <a href="${clientUrl}" target="_blank" class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
+    Abrir cliente
+  </a>
+  <button class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-url="${clientUrl}">
+    Copiar link
+  </button>
+  <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-id="${raffleId}" data-name="${displayName}">
+    Borrar
+  </button>
+</div>          </div>
         `;
 
         card.querySelector('.copy-client-btn').addEventListener('click', async (e) => {
