@@ -207,7 +207,8 @@
     let app, db, auth, currentUser;
     const DEFAULT_RAFFLE_ID = 'gran-rifa';
     let currentRaffleId = DEFAULT_RAFFLE_ID;
-
+    let currentShareId = null;
+    
     const state = {
       config: {
         raffle_name: 'Gran Rifa',
@@ -569,16 +570,20 @@
     window.sendPaymentMessage = sendPaymentMessage;
 
     function copyClientLink() {
-      if (!currentUser) {
-        showToast('No hay usuario activo', '#e57373');
-        return;
-      }
-      const url = new URL(window.location.href);
-      url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
-      url.searchParams.set('uid', currentUser.uid);
-      url.searchParams.set('raffle', currentRaffleId);
-      navigator.clipboard.writeText(url.toString()).then(() => showToast('Enlace cliente copiado'));
-    }
+  if (!currentShareId) {
+    showToast('Esta rifa no tiene enlace público todavía', '#e57373');
+    return;
+  }
+
+  const url = new URL(window.location.href);
+  url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
+  url.search = '';
+  url.searchParams.set('share', currentShareId);
+
+  navigator.clipboard.writeText(url.toString()).then(() => {
+    showToast('Enlace cliente copiado');
+  });
+}
     window.copyClientLink = copyClientLink;
 
     async function ensureInitialConfig() {
@@ -615,10 +620,25 @@
       currentUser = user;
       currentRaffleId = getRaffleIdFromUrl();
 
-      const clientLink = document.getElementById('clientViewLink');
-      if (clientLink) {
-        clientLink.href = `cliente.html?uid=${encodeURIComponent(user.uid)}&raffle=${encodeURIComponent(currentRaffleId)}`;
-      }
+      const configSnap = await getDoc(configRef());
+if (configSnap.exists()) {
+  const configData = configSnap.data();
+  state.config = {
+    ...state.config,
+    ...Object.fromEntries(Object.entries(configData).filter(([_, v]) => v != null))
+  };
+}
+
+const raffleRootSnap = await getDoc(doc(db, 'users', user.uid, 'raffles', currentRaffleId));
+if (raffleRootSnap.exists()) {
+  const raffleRootData = raffleRootSnap.data();
+  currentShareId = raffleRootData?.public_share_id || null;
+}
+
+const clientLink = document.getElementById('clientViewLink');
+if (clientLink && currentShareId) {
+  clientLink.href = `cliente.html?share=${encodeURIComponent(currentShareId)}`;
+}
 
       const userBox = document.getElementById('userBox');
       userBox.classList.remove('hidden');
