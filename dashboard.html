@@ -287,6 +287,11 @@
           await navigator.clipboard.writeText(new URL(url, window.location.href).toString());
           showStatus('Enlace cliente copiado.');
         });
+        card.querySelector('.delete-raffle-btn').addEventListener('click', (e) => {
+  const id = e.currentTarget.dataset.id;
+  const name = e.currentTarget.dataset.name;
+  deleteRaffle(id, name);
+});
 
         list.appendChild(card);
       });
