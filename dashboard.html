@@ -158,11 +158,14 @@
   return collection(db, 'users', currentUser.uid, 'raffles', raffleId, 'tickets');
 }
 
-    async function ensureRootRaffleDoc(raffleId, raffleName, shareId) {
+   async function ensureRootRaffleDoc(raffleId, raffleName, shareId) {
   await setDoc(raffleDocRef(raffleId), {
     raffle_id: raffleId,
     raffle_name: raffleName,
     public_share_id: shareId,
+    prize: defaultConfig.prize,
+    price: defaultConfig.price,
+    total_numbers: defaultConfig.total_numbers,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   }, { merge: true });
