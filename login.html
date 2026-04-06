@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Acceso | Carezza Rifa</title>
+  <title>Iniciar sesión | Carezza Rifa</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
@@ -28,66 +28,59 @@
 </head>
 <body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
   <main class="min-h-screen flex items-center justify-center p-4">
-    <section class="w-full max-w-md bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8">
-      <div class="text-center mb-6">
-        <h1 class="font-heading text-4xl text-lavDark font-bold">Carezza Rifa</h1>
-        <p class="text-sm text-lavDark/60 mt-2">Crea tu cuenta o inicia sesión</p>
+    <div class="w-full max-w-md bg-white/90 backdrop-blur rounded-3xl shadow-xl border border-lavLight p-8">
+      <div class="text-center mb-8">
+        <h1 class="font-heading text-4xl text-lavDark font-bold">Iniciar sesión</h1>
+        <p class="text-lavDark/60 mt-2">Accede a tu panel de rifas</p>
       </div>
 
-      <div class="space-y-4">
+      <form id="loginForm" class="space-y-4">
         <div>
-          <label class="block text-xs font-semibold text-lavDark/70 uppercase tracking-wide mb-1">Correo</label>
-          <input id="email" type="email" class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="tucorreo@gmail.com" />
+          <label class="block text-sm font-semibold text-lavDark/70 mb-1">Correo electrónico</label>
+          <input
+            id="email"
+            type="email"
+            required
+            class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+            placeholder="tucorreo@email.com"
+          />
         </div>
 
         <div>
-          <label class="block text-xs font-semibold text-lavDark/70 uppercase tracking-wide mb-1">Contraseña</label>
-          <input id="password" type="password" class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40" placeholder="********" />
+          <label class="block text-sm font-semibold text-lavDark/70 mb-1">Contraseña</label>
+          <input
+            id="password"
+            type="password"
+            required
+            class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+            placeholder="********"
+          />
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-          <button id="registerBtn" class="w-full h-12 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition">
-            Crear cuenta
-          </button>
-          <button id="loginBtn" class="w-full h-12 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition">
-            Iniciar sesión
-          </button>
-        </div>
-
-        <button id="logoutBtn" class="w-full h-12 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition hidden">
-          Cerrar sesión
+        <button
+          type="submit"
+          id="loginBtn"
+          class="w-full py-3 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
+        >
+          Iniciar sesión
         </button>
+      </form>
 
-        <div id="statusBox" class="text-sm rounded-2xl px-4 py-3 bg-peachLight text-lavDark/80 hidden"></div>
+      <p id="message" class="mt-4 text-sm text-center"></p>
+
+      <div class="mt-6 text-center">
+        <p class="text-sm text-lavDark/70">
+          ¿No tienes cuenta?
+          <a href="register.html" class="text-lavDark font-semibold underline">Regístrate</a>
+        </p>
       </div>
-    </section>
+    </div>
   </main>
 
   <script src="firebase-config.js"></script>
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
-    import {
-      getAuth,
-      createUserWithEmailAndPassword,
-      signInWithEmailAndPassword,
-      signOut,
-      onAuthStateChanged
-    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
-
-    function showStatus(message, isError = false) {
-      const box = document.getElementById('statusBox');
-      box.textContent = message;
-      box.classList.remove('hidden');
-      box.className = 'text-sm rounded-2xl px-4 py-3 ' + (isError
-        ? 'bg-red-50 text-red-600'
-        : 'bg-peachLight text-lavDark/80');
-    }
-
-    function clearStatus() {
-      const box = document.getElementById('statusBox');
-      box.classList.add('hidden');
-      box.textContent = '';
-    }
+    import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
 
     if (!window.FIREBASE_CONFIG) {
       alert('Falta firebase-config.js');
@@ -97,65 +90,36 @@
     const app = initializeApp(window.FIREBASE_CONFIG);
     const auth = getAuth(app);
 
-    const emailEl = document.getElementById('email');
-    const passwordEl = document.getElementById('password');
-    const registerBtn = document.getElementById('registerBtn');
-    const loginBtn = document.getElementById('loginBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    registerBtn.addEventListener('click', async () => {
-      clearStatus();
-      const email = emailEl.value.trim();
-      const password = passwordEl.value.trim();
-
-      if (!email || !password) {
-        showStatus('Debes escribir correo y contraseña.', true);
-        return;
-      }
-
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        showStatus('Cuenta creada correctamente.');
-        window.location.href = 'dashboard.html';
-      } catch (error) {
-        showStatus(error.message, true);
-      }
-    });
-
-    loginBtn.addEventListener('click', async () => {
-      clearStatus();
-      const email = emailEl.value.trim();
-      const password = passwordEl.value.trim();
-
-      if (!email || !password) {
-        showStatus('Debes escribir correo y contraseña.', true);
-        return;
-      }
-
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        showStatus('Sesión iniciada correctamente.');
-        window.location.href = 'dashboard.html';
-      } catch (error) {
-        showStatus(error.message, true);
-      }
-    });
-
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        await signOut(auth);
-        showStatus('Sesión cerrada.');
-      } catch (error) {
-        showStatus(error.message, true);
-      }
-    });
+    const form = document.getElementById('loginForm');
+    const msg = document.getElementById('message');
+    const btn = document.getElementById('loginBtn');
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        showStatus(`Sesión activa: ${user.email}`);
-        logoutBtn.classList.remove('hidden');
-      } else {
-        logoutBtn.classList.add('hidden');
+        window.location.href = 'dashboard.html';
+      }
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      msg.textContent = '';
+      msg.className = 'mt-4 text-sm text-center';
+      btn.disabled = true;
+      btn.textContent = 'Ingresando...';
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = 'dashboard.html';
+      } catch (error) {
+        console.error(error);
+        msg.textContent = 'No se pudo iniciar sesión. Verifica tu correo y contraseña.';
+        msg.classList.add('text-red-600');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Iniciar sesión';
       }
     });
   </script>
