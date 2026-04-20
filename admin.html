@@ -188,14 +188,16 @@
       </div>
     </main>
 
-
-    <div id="adminBulkBar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl bg-white border border-lavLight shadow-lg rounded-2xl px-4 py-3">
+    <div id="adminBulkBar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-3xl bg-white border border-lavLight shadow-lg rounded-2xl px-4 py-3">
       <div class="flex flex-col sm:flex-row items-center gap-3 justify-between">
         <div class="text-center sm:text-left">
           <p id="adminSelectedCountText" class="text-sm font-semibold text-lavDark">0 seleccionados</p>
           <p class="text-xs text-lavDark/60">Acciones masivas para los números seleccionados</p>
         </div>
         <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <button onclick="openBulkReserveAdminModal()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-amber-500 text-white font-semibold hover:bg-amber-600 transition">
+            Reservar manualmente
+          </button>
           <button onclick="bulkMarkPaid()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-violet-500 text-white font-semibold hover:bg-violet-600 transition">
             Marcar pagados
           </button>
@@ -533,6 +535,83 @@
       closeModal();
     }
     window.bulkFreeNumbers = bulkFreeNumbers;
+
+    function openBulkReserveAdminModal() {
+      const nums = [...selectedAdminNumbers].sort((a, b) => a - b);
+      if (!nums.length) {
+        showToast('Selecciona al menos un número', '#e57373');
+        return;
+      }
+
+      const formattedNumbers = nums.map(n => `#${String(n).padStart(2, '0')}`).join(', ');
+
+      document.getElementById('modalTitle').textContent = 'Reservar números manualmente';
+      document.getElementById('modalContent').innerHTML = `
+        <div class="space-y-3">
+          <div class="rounded-xl bg-peachLight px-3 py-3">
+            <p class="text-xs font-semibold uppercase text-lavDark/60">Seleccionados</p>
+            <p class="text-sm font-semibold text-lavDark mt-1">${formattedNumbers}</p>
+            <p class="text-xs text-lavDark/70 mt-1">Cantidad: ${nums.length}</p>
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
+            <input id="bulkAdminName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono</label>
+            <input id="bulkAdminPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+          </div>
+
+          <button id="bulkReserveAdminBtn" class="w-full py-2.5 rounded-xl bg-amber-500 text-white font-semibold text-sm hover:bg-amber-600 transition-colors">
+            Reservar seleccionados
+          </button>
+
+          <button id="bulkReserveAdminCancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">
+            Cancelar
+          </button>
+        </div>
+      `;
+
+      document.getElementById('bulkReserveAdminBtn').addEventListener('click', bulkReserveAdminNumbers);
+      document.getElementById('bulkReserveAdminCancelBtn').addEventListener('click', closeModal);
+      document.getElementById('modal').style.display = 'flex';
+    }
+    window.openBulkReserveAdminModal = openBulkReserveAdminModal;
+
+    async function bulkReserveAdminNumbers() {
+      const nums = [...selectedAdminNumbers].sort((a, b) => a - b);
+      const name = document.getElementById('bulkAdminName')?.value?.trim();
+      const phone = document.getElementById('bulkAdminPhone')?.value?.trim();
+
+      if (!nums.length) {
+        showToast('Selecciona al menos un número', '#e57373');
+        return;
+      }
+
+      if (!name || !phone) {
+        showToast('Nombre y teléfono requeridos', '#e57373');
+        return;
+      }
+
+      for (const num of nums) {
+        await setDoc(ticketRef(num), {
+          number: num,
+          status: 'reserved',
+          name,
+          phone,
+          note: '',
+          reservedAt: serverTimestamp(),
+          paidAt: null
+        }, { merge: true });
+      }
+
+      showToast(`${nums.length} números reservados ✓`, '#d97706');
+      clearAdminSelection();
+      closeModal();
+    }
+    window.bulkReserveAdminNumbers = bulkReserveAdminNumbers;
 
     function renderReservedList() {
       const list = document.getElementById('reservedList');
