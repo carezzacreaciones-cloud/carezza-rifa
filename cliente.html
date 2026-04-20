@@ -50,11 +50,11 @@
 <body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
   <div id="toast" class="toast-msg opacity-0 bg-lavender text-white"></div>
 
-  <main class="min-h-screen p-4 sm:p-6">
+  <main class="min-h-screen p-4 sm:p-6 pb-28">
     <div class="max-w-5xl mx-auto">
       <header class="text-center py-6 fade-in">
         <h1 id="headerTitle" class="font-heading text-4xl sm:text-5xl text-lavDark font-bold">Gran Rifa</h1>
-        <p class="text-sm text-lavDark/60 mt-2">Elige tu número y resérvalo por WhatsApp</p>
+        <p class="text-sm text-lavDark/60 mt-2">Elige uno o varios números y resérvalos por WhatsApp</p>
       </header>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 fade-in">
@@ -82,14 +82,35 @@
           <button onclick="setFilter('paid')" id="filterPaid" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Pagados</button>
         </div>
 
+        <p class="text-sm text-lavDark/60 mb-4">
+          Toca los números verdes para seleccionarlos.
+        </p>
+
         <div id="ticketGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));"></div>
       </section>
     </div>
   </main>
 
+  <div id="bulkReserveBar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-xl bg-white border border-lavLight shadow-lg rounded-2xl px-4 py-3">
+    <div class="flex flex-col sm:flex-row items-center gap-3 justify-between">
+      <div class="text-center sm:text-left">
+        <p id="selectedCountText" class="text-sm font-semibold text-lavDark">0 números seleccionados</p>
+        <p id="selectedTotalText" class="text-xs text-lavDark/60">$0 total</p>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="clearSelection()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-gray-100 text-gray-600 font-semibold hover:bg-gray-200 transition">
+          Limpiar
+        </button>
+        <button onclick="openBulkReserveModal()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-green-500 text-white font-semibold hover:bg-green-600 transition">
+          Reservar vía WhatsApp
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);">
     <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl fade-in">
-      <h3 id="modalTitle" class="font-heading text-2xl text-lavDark font-bold mb-4">Número #01</h3>
+      <h3 id="modalTitle" class="font-heading text-2xl text-lavDark font-bold mb-4">Reservar números</h3>
       <div id="modalContent"></div>
     </div>
   </div>
@@ -112,6 +133,7 @@
     let currentFilter = 'all';
     let currentRaffleId = null;
     let currentShareId = null;
+    let selectedNumbers = new Set();
 
     const state = {
       config: {
@@ -142,13 +164,8 @@
     }
 
     function getShareIdFromUrl() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('share');
-}
-
-    function getRaffleIdFromUrl() {
       const params = new URLSearchParams(window.location.search);
-      return params.get('raffle') || DEFAULT_RAFFLE_ID;
+      return params.get('share');
     }
 
     function cfg(key) { return state.config[key]; }
@@ -168,9 +185,10 @@
     function ticketRef(num) {
       return doc(db, 'users', ownerUid, 'raffles', currentRaffleId, 'tickets', String(num));
     }
+
     function publicRaffleRef(shareId) {
-  return doc(db, 'public_raffles', shareId);
-}
+      return doc(db, 'public_raffles', shareId);
+    }
 
     function renderAll() {
       document.getElementById('headerTitle').textContent = cfg('raffle_name');
@@ -182,7 +200,18 @@
         if (getStatus(i) === 'available') available++;
       }
       document.getElementById('infoAvailable').textContent = available;
+
+      cleanUnavailableSelections();
       renderGrid();
+      updateBulkReserveBar();
+    }
+
+    function cleanUnavailableSelections() {
+      selectedNumbers.forEach((num) => {
+        if (getStatus(num) !== 'available') {
+          selectedNumbers.delete(num);
+        }
+      });
     }
 
     function renderGrid() {
@@ -195,26 +224,85 @@
         if (!visible) continue;
 
         let bg, text, border, cursor;
+
         if (status === 'paid') {
-          bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd'; cursor = 'not-allowed';
+          bg = '#ede9fe';
+          text = '#7c3aed';
+          border = '#c4b5fd';
+          cursor = 'not-allowed';
         } else if (status === 'reserved') {
-          bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d'; cursor = 'not-allowed';
+          bg = '#fef3c7';
+          text = '#d97706';
+          border = '#fcd34d';
+          cursor = 'not-allowed';
         } else {
-          bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0'; cursor = 'pointer';
+          const isSelected = selectedNumbers.has(i);
+          bg = isSelected ? '#b5a7cb' : '#ecfdf5';
+          text = isSelected ? '#ffffff' : '#059669';
+          border = isSelected ? '#8a7aa6' : '#a7f3d0';
+          cursor = 'pointer';
         }
 
         const el = document.createElement('div');
         el.className = 'ticket-cell';
-        el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:8px 2px;text-align:center;font-weight:700;font-size:14px;cursor:${cursor};position:relative;`;
+        el.style.cssText = `
+          background:${bg};
+          color:${text};
+          border:1.5px solid ${border};
+          border-radius:12px;
+          padding:8px 2px;
+          text-align:center;
+          font-weight:700;
+          font-size:14px;
+          cursor:${cursor};
+          position:relative;
+        `;
         el.textContent = String(i).padStart(2, '0');
 
         if (status === 'available') {
-          el.addEventListener('click', () => openModal(i));
+          el.addEventListener('click', () => toggleNumberSelection(i));
         }
 
         grid.appendChild(el);
       }
     }
+
+    function toggleNumberSelection(num) {
+      if (getStatus(num) !== 'available') return;
+
+      if (selectedNumbers.has(num)) {
+        selectedNumbers.delete(num);
+      } else {
+        selectedNumbers.add(num);
+      }
+
+      renderGrid();
+      updateBulkReserveBar();
+    }
+
+    function updateBulkReserveBar() {
+      const bar = document.getElementById('bulkReserveBar');
+      const countText = document.getElementById('selectedCountText');
+      const totalText = document.getElementById('selectedTotalText');
+      const count = selectedNumbers.size;
+      const total = count * getPrice();
+
+      if (count === 0) {
+        bar.classList.add('hidden');
+        return;
+      }
+
+      countText.textContent = `${count} ${count === 1 ? 'número seleccionado' : 'números seleccionados'}`;
+      totalText.textContent = `$${total.toLocaleString('es-CL')} total`;
+      bar.classList.remove('hidden');
+    }
+
+    function clearSelection() {
+      selectedNumbers.clear();
+      renderGrid();
+      updateBulkReserveBar();
+    }
+    window.clearSelection = clearSelection;
 
     function setFilter(f) {
       currentFilter = f;
@@ -227,26 +315,50 @@
     }
     window.setFilter = setFilter;
 
-    function openModal(num) {
-      document.getElementById('modalTitle').textContent = `Número #${String(num).padStart(2, '0')}`;
+    function openBulkReserveModal() {
+      const numbers = [...selectedNumbers].sort((a, b) => a - b);
+      if (!numbers.length) {
+        showToast('Selecciona al menos un número', '#e57373');
+        return;
+      }
+
+      const formattedNumbers = numbers.map(n => `#${String(n).padStart(2, '0')}`).join(', ');
+      const total = numbers.length * getPrice();
+
+      document.getElementById('modalTitle').textContent = 'Reservar números';
       document.getElementById('modalContent').innerHTML = `
         <div class="space-y-3">
+          <div class="rounded-xl bg-peachLight px-3 py-3">
+            <p class="text-xs font-semibold uppercase text-lavDark/60">Seleccionados</p>
+            <p class="text-sm font-semibold text-lavDark mt-1">${formattedNumbers}</p>
+            <p class="text-xs text-lavDark/70 mt-1">Cantidad: ${numbers.length} · Total: $${total.toLocaleString('es-CL')}</p>
+          </div>
+
           <div>
             <label class="text-xs font-semibold text-lavDark/60 uppercase">Nombre</label>
             <input id="mName" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
           </div>
+
           <div>
             <label class="text-xs font-semibold text-lavDark/60 uppercase">Teléfono</label>
             <input id="mPhone" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
           </div>
-          <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">Reservar vía WhatsApp</button>
-          <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cancelar</button>
+
+          <button id="reserveBtn" class="w-full py-2.5 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors">
+            Reservar vía WhatsApp
+          </button>
+
+          <button id="cancelBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">
+            Cancelar
+          </button>
         </div>
       `;
-      document.getElementById('reserveBtn').addEventListener('click', () => reserveNumber(num));
+
+      document.getElementById('reserveBtn').addEventListener('click', reserveSelectedNumbers);
       document.getElementById('cancelBtn').addEventListener('click', closeModal);
       document.getElementById('modal').style.display = 'flex';
     }
+    window.openBulkReserveModal = openBulkReserveModal;
 
     function closeModal() {
       document.getElementById('modal').style.display = 'none';
@@ -257,127 +369,145 @@
       if (e.target === e.currentTarget) closeModal();
     });
 
-    async function reserveNumber(num) {
+    async function reserveSelectedNumbers() {
       const name = document.getElementById('mName')?.value?.trim();
       const phone = document.getElementById('mPhone')?.value?.trim();
+      const numbers = [...selectedNumbers].sort((a, b) => a - b);
+
+      if (!numbers.length) {
+        showToast('Selecciona al menos un número', '#e57373');
+        return;
+      }
 
       if (!name || !phone) {
         showToast('Nombre y teléfono requeridos', '#e57373');
         return;
       }
 
-      const fresh = await getDoc(ticketRef(num));
-      if (fresh.exists()) {
-        const data = fresh.data();
-        if (data.status === 'reserved' || data.status === 'paid') {
-          showToast('Ese número ya no está disponible', '#e57373');
-          closeModal();
-          return;
+      for (const num of numbers) {
+        const fresh = await getDoc(ticketRef(num));
+        if (fresh.exists()) {
+          const data = fresh.data();
+          if (data.status === 'reserved' || data.status === 'paid') {
+            showToast(`El número #${String(num).padStart(2, '0')} ya no está disponible`, '#e57373');
+            selectedNumbers.delete(num);
+            renderAll();
+            closeModal();
+            return;
+          }
         }
       }
 
-      await setDoc(ticketRef(num), {
-        number: num,
-        status: 'reserved',
-        name,
-        phone,
-        note: '',
-        reservedAt: serverTimestamp(),
-        paidAt: null
-      }, { merge: true });
+      for (const num of numbers) {
+        await setDoc(ticketRef(num), {
+          number: num,
+          status: 'reserved',
+          name,
+          phone,
+          note: '',
+          reservedAt: serverTimestamp(),
+          paidAt: null
+        }, { merge: true });
+      }
 
       const wa = String(cfg('whatsapp')).replace(/\D/g, '');
+      const formattedNumbers = numbers.map(n => `#${String(n).padStart(2, '0')}`).join(', ');
+      const total = numbers.length * getPrice();
+
       const fullMsg = `${cfg('reserve_message')}
 
-Número: #${String(num).padStart(2,'0')}
-Precio: $${getPrice().toLocaleString('es-CL')}
+Números: ${formattedNumbers}
+Cantidad: ${numbers.length}
+Precio total: $${total.toLocaleString('es-CL')}
 
 Mis datos:
 Nombre: ${name}
 Teléfono: ${phone}`;
 
-      showToast('Número reservado. Abriendo WhatsApp...', '#059669');
+      showToast('Números reservados. Abriendo WhatsApp...', '#059669');
+      selectedNumbers.clear();
       closeModal();
+      renderAll();
 
       setTimeout(() => {
         window.open(`https://wa.me/${wa}?text=${encodeURIComponent(fullMsg)}`, '_blank');
       }, 350);
     }
 
-async function init() {
-  ensureFirebaseConfig();
+    async function init() {
+      ensureFirebaseConfig();
 
-  currentShareId = getShareIdFromUrl();
+      currentShareId = getShareIdFromUrl();
 
-  if (!currentShareId) {
-    document.body.innerHTML = `
-      <main class="min-h-screen flex items-center justify-center p-4">
-        <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
-          <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace incompleto</h1>
-          <p class="text-lavDark/70">Falta el identificador público de la rifa en la URL.</p>
-        </div>
-      </main>
-    `;
-    return;
-  }
+      if (!currentShareId) {
+        document.body.innerHTML = `
+          <main class="min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace incompleto</h1>
+              <p class="text-lavDark/70">Falta el identificador público de la rifa en la URL.</p>
+            </div>
+          </main>
+        `;
+        return;
+      }
 
-  app = initializeApp(window.FIREBASE_CONFIG);
-  db = getFirestore(app);
+      app = initializeApp(window.FIREBASE_CONFIG);
+      db = getFirestore(app);
 
-  const publicSnap = await getDoc(publicRaffleRef(currentShareId));
+      const publicSnap = await getDoc(publicRaffleRef(currentShareId));
 
-  if (!publicSnap.exists()) {
-    document.body.innerHTML = `
-      <main class="min-h-screen flex items-center justify-center p-4">
-        <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
-          <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Rifa no encontrada</h1>
-          <p class="text-lavDark/70">Este enlace no corresponde a una rifa disponible.</p>
-        </div>
-      </main>
-    `;
-    return;
-  }
+      if (!publicSnap.exists()) {
+        document.body.innerHTML = `
+          <main class="min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Rifa no encontrada</h1>
+              <p class="text-lavDark/70">Este enlace no corresponde a una rifa disponible.</p>
+            </div>
+          </main>
+        `;
+        return;
+      }
 
-  const publicData = publicSnap.data();
-  ownerUid = publicData.owner_uid;
-  currentRaffleId = publicData.raffle_id;
+      const publicData = publicSnap.data();
+      ownerUid = publicData.owner_uid;
+      currentRaffleId = publicData.raffle_id;
 
-  if (!ownerUid || !currentRaffleId) {
-    document.body.innerHTML = `
-      <main class="min-h-screen flex items-center justify-center p-4">
-        <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
-          <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace inválido</h1>
-          <p class="text-lavDark/70">Faltan datos para cargar la rifa.</p>
-        </div>
-      </main>
-    `;
-    return;
-  }
+      if (!ownerUid || !currentRaffleId) {
+        document.body.innerHTML = `
+          <main class="min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace inválido</h1>
+              <p class="text-lavDark/70">Faltan datos para cargar la rifa.</p>
+            </div>
+          </main>
+        `;
+        return;
+      }
 
-  onSnapshot(configRef(), (snap) => {
-    if (snap.exists()) {
-      const data = snap.data();
-      state.config = {
-        ...state.config,
-        ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
-      };
+      onSnapshot(configRef(), (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          state.config = {
+            ...state.config,
+            ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
+          };
+          renderAll();
+        }
+      });
+
+      onSnapshot(ticketsColRef(), (snapshot) => {
+        const next = new Map();
+        snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
+        state.tickets = next;
+        renderAll();
+      });
+
       renderAll();
     }
-  });
-
-  onSnapshot(ticketsColRef(), (snapshot) => {
-    const next = new Map();
-    snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
-    state.tickets = next;
-    renderAll();
-  });
-
-  renderAll();
-}
 
     init().catch(err => {
       console.error(err);
-      alert('Error iniciando cliente. Revisa el uid, raffle y las reglas de Firestore.');
+      alert('Error iniciando cliente. Revisa el share y las reglas de Firestore.');
     });
   </script>
 </body>
