@@ -174,16 +174,40 @@
             <i data-lucide="grid-3x3" class="text-lavender" style="width:18px;height:18px;"></i>
             <h2 class="font-heading text-xl font-bold text-lavDark">Talonario</h2>
           </div>
-          <div class="flex gap-2 mb-4 flex-wrap">
+          <div class="flex gap-2 mb-4 flex-wrap items-center">
             <button onclick="setFilter('all')" id="filterAll" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors bg-lavender text-white border-lavender">Todos</button>
             <button onclick="setFilter('available')" id="filterAvail" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Disponibles</button>
             <button onclick="setFilter('reserved')" id="filterReserved" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Reservados</button>
             <button onclick="setFilter('paid')" id="filterPaid" class="px-3 py-1 rounded-full text-xs font-semibold border transition-colors border-lavLight text-lavDark/60 hover:bg-lavLight/30">Pagados</button>
+            <button onclick="toggleAdminSelectionMode()" id="multiSelectBtn" class="ml-auto px-3 py-1 rounded-full text-xs font-semibold border border-lavLight text-lavDark hover:bg-lavLight/30 transition-colors">
+              Selección múltiple
+            </button>
           </div>
           <div id="ticketGrid" class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));"></div>
         </section>
       </div>
     </main>
+
+
+    <div id="adminBulkBar" class="hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-2xl bg-white border border-lavLight shadow-lg rounded-2xl px-4 py-3">
+      <div class="flex flex-col sm:flex-row items-center gap-3 justify-between">
+        <div class="text-center sm:text-left">
+          <p id="adminSelectedCountText" class="text-sm font-semibold text-lavDark">0 seleccionados</p>
+          <p class="text-xs text-lavDark/60">Acciones masivas para los números seleccionados</p>
+        </div>
+        <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+          <button onclick="bulkMarkPaid()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-violet-500 text-white font-semibold hover:bg-violet-600 transition">
+            Marcar pagados
+          </button>
+          <button onclick="bulkFreeNumbers()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition">
+            Liberar
+          </button>
+          <button onclick="clearAdminSelection()" class="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-gray-100 text-gray-600 font-semibold hover:bg-gray-200 transition">
+            Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" style="background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);">
       <div class="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl fade-in">
@@ -208,6 +232,8 @@
     const DEFAULT_RAFFLE_ID = 'gran-rifa';
     let currentRaffleId = DEFAULT_RAFFLE_ID;
     let currentShareId = null;
+    let adminSelectionMode = false;
+    let selectedAdminNumbers = new Set();
     
     const state = {
       config: {
@@ -375,14 +401,21 @@
         const visible = currentFilter === 'all' || currentFilter === s || (currentFilter === 'available' && s === 'available');
         if (!visible) continue;
 
+        const isSelected = selectedAdminNumbers.has(i);
         const el = document.createElement('div');
         let bg, text, border;
         if (s === 'paid') {
-          bg = '#ede9fe'; text = '#7c3aed'; border = '#c4b5fd';
+          bg = isSelected ? '#7c3aed' : '#ede9fe';
+          text = isSelected ? '#ffffff' : '#7c3aed';
+          border = isSelected ? '#6d28d9' : '#c4b5fd';
         } else if (s === 'reserved') {
-          bg = '#fef3c7'; text = '#d97706'; border = '#fcd34d';
+          bg = isSelected ? '#d97706' : '#fef3c7';
+          text = isSelected ? '#ffffff' : '#d97706';
+          border = isSelected ? '#b45309' : '#fcd34d';
         } else {
-          bg = '#ecfdf5'; text = '#059669'; border = '#a7f3d0';
+          bg = isSelected ? '#059669' : '#ecfdf5';
+          text = isSelected ? '#ffffff' : '#059669';
+          border = isSelected ? '#047857' : '#a7f3d0';
         }
 
         el.className = 'ticket-cell';
@@ -390,10 +423,116 @@
         const r = getRecord(i);
         el.title = r?.name || '';
         el.textContent = String(i).padStart(2, '0');
-        el.addEventListener('click', () => openModal(i));
+
+        if (isSelected) {
+          const badge = document.createElement('div');
+          badge.textContent = '✓';
+          badge.style.cssText = 'position:absolute;top:2px;right:4px;font-size:10px;font-weight:800;';
+          el.appendChild(badge);
+        }
+
+        if (adminSelectionMode) {
+          el.addEventListener('click', () => toggleAdminNumberSelection(i));
+        } else {
+          el.addEventListener('click', () => openModal(i));
+        }
+
         grid.appendChild(el);
       }
+
+      updateAdminBulkBar();
+      updateMultiSelectButton();
     }
+
+    function toggleAdminSelectionMode() {
+      adminSelectionMode = !adminSelectionMode;
+      if (!adminSelectionMode) {
+        selectedAdminNumbers.clear();
+      }
+      renderAll();
+    }
+    window.toggleAdminSelectionMode = toggleAdminSelectionMode;
+
+    function toggleAdminNumberSelection(num) {
+      if (selectedAdminNumbers.has(num)) {
+        selectedAdminNumbers.delete(num);
+      } else {
+        selectedAdminNumbers.add(num);
+      }
+      renderGrid(totalNums());
+    }
+
+    function updateMultiSelectButton() {
+      const btn = document.getElementById('multiSelectBtn');
+      if (!btn) return;
+      if (adminSelectionMode) {
+        btn.className = 'ml-auto px-3 py-1 rounded-full text-xs font-semibold border bg-lavender text-white border-lavender transition-colors';
+        btn.textContent = 'Salir multiselección';
+      } else {
+        btn.className = 'ml-auto px-3 py-1 rounded-full text-xs font-semibold border border-lavLight text-lavDark hover:bg-lavLight/30 transition-colors';
+        btn.textContent = 'Selección múltiple';
+      }
+    }
+
+    function updateAdminBulkBar() {
+      const bar = document.getElementById('adminBulkBar');
+      const text = document.getElementById('adminSelectedCountText');
+      if (!bar || !text) return;
+
+      const count = selectedAdminNumbers.size;
+      text.textContent = `${count} ${count === 1 ? 'seleccionado' : 'seleccionados'}`;
+
+      if (adminSelectionMode && count > 0) {
+        bar.classList.remove('hidden');
+      } else {
+        bar.classList.add('hidden');
+      }
+    }
+
+    function clearAdminSelection() {
+      selectedAdminNumbers.clear();
+      adminSelectionMode = false;
+      renderAll();
+    }
+    window.clearAdminSelection = clearAdminSelection;
+
+    async function bulkMarkPaid() {
+      const nums = [...selectedAdminNumbers];
+      if (!nums.length) {
+        showToast('Selecciona al menos un número', '#e57373');
+        return;
+      }
+
+      for (const num of nums) {
+        await setDoc(ticketRef(num), {
+          number: num,
+          status: 'paid',
+          paidAt: serverTimestamp()
+        }, { merge: true });
+      }
+
+      showToast(`${nums.length} números marcados como pagados ✓`, '#7c3aed');
+      clearAdminSelection();
+      closeModal();
+    }
+    window.bulkMarkPaid = bulkMarkPaid;
+
+    async function bulkFreeNumbers() {
+      const nums = [...selectedAdminNumbers];
+      if (!nums.length) {
+        showToast('Selecciona al menos un número', '#e57373');
+        return;
+      }
+
+      for (const num of nums) {
+        await deleteDoc(ticketRef(num));
+      }
+
+      showToast(`${nums.length} números liberados ✓`, '#059669');
+      clearAdminSelection();
+      closeModal();
+    }
+    window.bulkFreeNumbers = bulkFreeNumbers;
 
     function renderReservedList() {
       const list = document.getElementById('reservedList');
