@@ -36,16 +36,17 @@
 
       <form id="registerForm" class="space-y-4">
         <div>
-          <div>
-  <label class="block text-sm font-semibold text-lavDark/70 mb-1">Nombre</label>
-  <input
-    id="displayName"
-    type="text"
-    required
-    class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
-    placeholder="Ej: María Pérez"
-  />
-</div>
+          <label class="block text-sm font-semibold text-lavDark/70 mb-1">Nombre</label>
+          <input
+            id="displayName"
+            type="text"
+            required
+            class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+            placeholder="Ej: María Pérez"
+          />
+        </div>
+
+        <div>
           <label class="block text-sm font-semibold text-lavDark/70 mb-1">Correo electrónico</label>
           <input
             id="email"
@@ -103,6 +104,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
     import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+
     if (!window.FIREBASE_CONFIG) {
       alert('Falta firebase-config.js');
       throw new Error('Falta firebase-config.js');
@@ -116,8 +118,19 @@
     const msg = document.getElementById('message');
     const btn = document.getElementById('registerBtn');
 
+    let isRegistering = false;
+    let authReady = false;
+
     onAuthStateChanged(auth, (user) => {
-      if (user) {
+      if (!authReady) {
+        authReady = true;
+        if (user && !isRegistering) {
+          window.location.href = 'dashboard.html';
+        }
+        return;
+      }
+
+      if (user && !isRegistering) {
         window.location.href = 'dashboard.html';
       }
     });
@@ -133,10 +146,11 @@
       const confirmPassword = document.getElementById('confirmPassword').value;
 
       if (!displayName) {
-  msg.textContent = 'Debes ingresar un nombre.';
-  msg.classList.add('text-red-600');
-  return;
-}
+        msg.textContent = 'Debes ingresar un nombre.';
+        msg.classList.add('text-red-600');
+        return;
+      }
+
       if (password !== confirmPassword) {
         msg.textContent = 'Las contraseñas no coinciden.';
         msg.classList.add('text-red-600');
@@ -151,23 +165,25 @@
 
       btn.disabled = true;
       btn.textContent = 'Creando cuenta...';
+      isRegistering = true;
 
       try {
-       const cred = await createUserWithEmailAndPassword(auth, email, password);
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
 
-await setDoc(doc(db, 'users', cred.user.uid), {
-  email,
-  display_name: displayName,
-  role: 'admin',
-  active: true,
-  createdAt: serverTimestamp()
-}, { merge: true });
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          email,
+          display_name: displayName,
+          role: 'admin',
+          active: true,
+          createdAt: serverTimestamp()
+        }, { merge: true });
 
-window.location.href = 'dashboard.html';
+        window.location.href = 'dashboard.html';
       } catch (error) {
         console.error(error);
-        msg.textContent = 'No se pudo crear la cuenta. Verifica que el correo no esté en uso.';
+        msg.textContent = 'No se pudo crear la cuenta. Revisa permisos en Firestore o si el correo ya está en uso.';
         msg.classList.add('text-red-600');
+        isRegistering = false;
       } finally {
         btn.disabled = false;
         btn.textContent = 'Crear cuenta';
