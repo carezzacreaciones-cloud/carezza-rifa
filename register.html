@@ -102,7 +102,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import { getAuth, createUserWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
-
+    import { getFirestore, doc, setDoc, serverTimestamp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
     if (!window.FIREBASE_CONFIG) {
       alert('Falta firebase-config.js');
       throw new Error('Falta firebase-config.js');
@@ -110,6 +110,7 @@
 
     const app = initializeApp(window.FIREBASE_CONFIG);
     const auth = getAuth(app);
+    const db = getFirestore(app);
 
     const form = document.getElementById('registerForm');
     const msg = document.getElementById('message');
@@ -126,10 +127,16 @@
       msg.textContent = '';
       msg.className = 'mt-4 text-sm text-center';
 
+      const displayName = document.getElementById('displayName').value.trim();
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
       const confirmPassword = document.getElementById('confirmPassword').value;
 
+      if (!displayName) {
+  msg.textContent = 'Debes ingresar un nombre.';
+  msg.classList.add('text-red-600');
+  return;
+}
       if (password !== confirmPassword) {
         msg.textContent = 'Las contraseñas no coinciden.';
         msg.classList.add('text-red-600');
@@ -146,8 +153,17 @@
       btn.textContent = 'Creando cuenta...';
 
       try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        window.location.href = 'dashboard.html';
+       const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+await setDoc(doc(db, 'users', cred.user.uid), {
+  email,
+  display_name: displayName,
+  role: 'admin',
+  active: true,
+  createdAt: serverTimestamp()
+}, { merge: true });
+
+window.location.href = 'dashboard.html';
       } catch (error) {
         console.error(error);
         msg.textContent = 'No se pudo crear la cuenta. Verifica que el correo no esté en uso.';
