@@ -28,15 +28,15 @@
 </head>
 <body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
   <main class="min-h-screen p-4 sm:p-6">
-    <div class="max-w-5xl mx-auto">
+    <div class="max-w-6xl mx-auto">
       <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
         <div class="text-center">
-          <h1 class="font-heading text-4xl text-lavDark font-bold">Mis Rifas</h1>
-          <p class="text-sm text-lavDark/60 mt-2">Crea, administra y comparte tus rifas</p>
+          <h1 id="pageTitle" class="font-heading text-4xl text-lavDark font-bold">Mis Rifas</h1>
+          <p id="pageSubtitle" class="text-sm text-lavDark/60 mt-2">Crea, administra y comparte tus rifas</p>
           <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-6">
+        <div id="createSection" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-6">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               id="raffleNameInput"
@@ -71,12 +71,12 @@
 
       <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8">
         <div class="flex items-center justify-between gap-3 mb-4">
-          <h2 class="font-heading text-3xl text-lavDark font-bold">Tus rifas</h2>
+          <h2 id="listTitle" class="font-heading text-3xl text-lavDark font-bold">Tus rifas</h2>
           <span id="countBox" class="text-sm text-lavDark/60">0 rifas</span>
         </div>
 
         <div id="rafflesList" class="grid grid-cols-1 gap-4">
-          <p class="text-lavDark/50">Aún no tienes rifas creadas.</p>
+          <p class="text-lavDark/50">Aún no hay rifas para mostrar.</p>
         </div>
       </section>
     </div>
@@ -87,17 +87,17 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
     import {
-  getFirestore,
-  collection,
-  doc,
-  setDoc,
-  onSnapshot,
-  serverTimestamp,
-  getDoc,
-  getDocs,
-  deleteDoc,
-  writeBatch
-} from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+      getFirestore,
+      collection,
+      doc,
+      setDoc,
+      onSnapshot,
+      serverTimestamp,
+      getDoc,
+      getDocs,
+      deleteDoc,
+      writeBatch
+    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     const defaultConfig = {
       raffle_name: 'Gran Rifa',
@@ -109,7 +109,8 @@
       total_numbers: '100'
     };
 
-    let app, auth, db, currentUser = null, unsubscribeRaffles = null;
+    let app, auth, db, currentUser = null, currentProfile = null;
+    let unsubscribeOwnRaffles = null;
 
     function showStatus(message, isError = false) {
       const box = document.getElementById('statusBox');
@@ -136,49 +137,67 @@
         .replace(/-{2,}/g, '-')
         .slice(0, 50);
     }
+
     function generateShareId() {
-  return 'share-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-}
-
-    function rafflesColRef() {
-      return collection(db, 'users', currentUser.uid, 'raffles');
+      return 'share-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
     }
 
-    function raffleDocRef(raffleId) {
-      return doc(db, 'users', currentUser.uid, 'raffles', raffleId);
+    function isSuperAdmin() {
+      return currentProfile?.role === 'superadmin';
     }
 
-    function raffleConfigRef(raffleId) {
-      return doc(db, 'users', currentUser.uid, 'raffles', raffleId, 'meta', 'config');
+    function userProfileRef(userId) {
+      return doc(db, 'users', userId);
     }
+
+    function rafflesColRef(userId = currentUser.uid) {
+      return collection(db, 'users', userId, 'raffles');
+    }
+
+    function raffleDocRef(raffleId, userId = currentUser.uid) {
+      return doc(db, 'users', userId, 'raffles', raffleId);
+    }
+
+    function raffleConfigRef(raffleId, userId = currentUser.uid) {
+      return doc(db, 'users', userId, 'raffles', raffleId, 'meta', 'config');
+    }
+
+    function raffleTicketsColRef(raffleId, userId = currentUser.uid) {
+      return collection(db, 'users', userId, 'raffles', raffleId, 'tickets');
+    }
+
     function publicRaffleRef(shareId) {
-  return doc(db, 'public_raffles', shareId);
-}
-    function raffleTicketsColRef(raffleId) {
-  return collection(db, 'users', currentUser.uid, 'raffles', raffleId, 'tickets');
-}
+      return doc(db, 'public_raffles', shareId);
+    }
 
-   async function ensureRootRaffleDoc(raffleId, raffleName, shareId) {
-  await setDoc(raffleDocRef(raffleId), {
-    raffle_id: raffleId,
-    raffle_name: raffleName,
-    public_share_id: shareId,
-    prize: defaultConfig.prize,
-    price: defaultConfig.price,
-    total_numbers: defaultConfig.total_numbers,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-}
+    async function ensureRootRaffleDoc(raffleId, raffleName, shareId) {
+      await setDoc(raffleDocRef(raffleId), {
+        raffle_id: raffleId,
+        raffle_name: raffleName,
+        public_share_id: shareId,
+        prize: defaultConfig.prize,
+        price: defaultConfig.price,
+        total_numbers: defaultConfig.total_numbers,
+        created_by_uid: currentUser.uid,
+        created_by_email: currentUser.email || '',
+        created_by_name: currentProfile?.display_name || currentUser.email || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
+
     async function ensurePublicRaffleDoc(shareId, raffleId, raffleName) {
-  await setDoc(publicRaffleRef(shareId), {
-    owner_uid: currentUser.uid,
-    raffle_id: raffleId,
-    raffle_name: raffleName,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  }, { merge: true });
-}
+      await setDoc(publicRaffleRef(shareId), {
+        owner_uid: currentUser.uid,
+        raffle_id: raffleId,
+        raffle_name: raffleName,
+        created_by_uid: currentUser.uid,
+        created_by_email: currentUser.email || '',
+        created_by_name: currentProfile?.display_name || currentUser.email || '',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      }, { merge: true });
+    }
 
     async function ensureRaffleConfig(raffleId, raffleName) {
       const snap = await getDoc(raffleConfigRef(raffleId));
@@ -194,6 +213,11 @@
 
     async function createRaffle() {
       clearStatus();
+
+      if (isSuperAdmin()) {
+        showStatus('La cuenta superadmin no crea rifas desde este panel.', true);
+        return;
+      }
 
       const nameInput = document.getElementById('raffleNameInput');
       const slugInput = document.getElementById('raffleSlugInput');
@@ -216,112 +240,136 @@
       }
 
       try {
-  const shareId = generateShareId();
+        const shareId = generateShareId();
 
-  await ensureRootRaffleDoc(raffleId, raffleName, shareId);
-  await ensurePublicRaffleDoc(shareId, raffleId, raffleName);
-  await ensureRaffleConfig(raffleId, raffleName);
+        await ensureRootRaffleDoc(raffleId, raffleName, shareId);
+        await ensurePublicRaffleDoc(shareId, raffleId, raffleName);
+        await ensureRaffleConfig(raffleId, raffleName);
 
         nameInput.value = '';
         slugInput.value = '';
 
         showStatus('Rifa creada correctamente.');
+        await refreshDashboard();
       } catch (error) {
         console.error(error);
         showStatus('Error al crear la rifa.', true);
       }
     }
-    async function deleteRaffle(raffleId, raffleName) {
-  const ok = window.confirm(`¿Seguro que quieres borrar la rifa "${raffleName}"? Esta acción eliminará tickets, configuración y la rifa del panel.`);
-  if (!ok) return;
 
-  try {
-    const ticketsSnap = await getDocs(raffleTicketsColRef(raffleId));
+    async function deleteRaffle(ownerUid, raffleId, raffleName, shareId) {
+      const ok = window.confirm(`¿Seguro que quieres borrar la rifa "${raffleName}"? Esta acción eliminará tickets, configuración y la rifa del panel.`);
+      if (!ok) return;
 
-    if (!ticketsSnap.empty) {
-      const docs = ticketsSnap.docs;
-      for (let i = 0; i < docs.length; i += 400) {
-        const batch = writeBatch(db);
-        docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
-        await batch.commit();
+      try {
+        const ticketsSnap = await getDocs(raffleTicketsColRef(raffleId, ownerUid));
+
+        if (!ticketsSnap.empty) {
+          const docs = ticketsSnap.docs;
+          for (let i = 0; i < docs.length; i += 400) {
+            const batch = writeBatch(db);
+            docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
+            await batch.commit();
+          }
+        }
+
+        await deleteDoc(raffleConfigRef(raffleId, ownerUid));
+        await deleteDoc(raffleDocRef(raffleId, ownerUid));
+
+        if (shareId) {
+          await deleteDoc(publicRaffleRef(shareId));
+        }
+
+        showStatus(`Rifa "${raffleName}" eliminada correctamente.`);
+        await refreshDashboard();
+      } catch (error) {
+        console.error(error);
+        showStatus('Error al eliminar la rifa.', true);
       }
     }
 
-    await deleteDoc(raffleConfigRef(raffleId));
-    await deleteDoc(raffleDocRef(raffleId));
-
-    showStatus(`Rifa "${raffleName}" eliminada correctamente.`);
-  } catch (error) {
-    console.error(error);
-    showStatus('Error al eliminar la rifa.', true);
-  }
-}
-
-    function renderRaffles(docs) {
+    function renderRaffles(items) {
       const list = document.getElementById('rafflesList');
       const countBox = document.getElementById('countBox');
 
-      countBox.textContent = `${docs.length} ${docs.length === 1 ? 'rifa' : 'rifas'}`;
+      countBox.textContent = `${items.length} ${items.length === 1 ? 'rifa' : 'rifas'}`;
 
-      if (!docs.length) {
-        list.innerHTML = '<p class="text-lavDark/50">Aún no tienes rifas creadas.</p>';
+      if (!items.length) {
+        list.innerHTML = '<p class="text-lavDark/50">Aún no hay rifas para mostrar.</p>';
         return;
       }
 
       list.innerHTML = '';
 
-      docs.forEach((item) => {
+      items.forEach((item) => {
         const raffleId = item.id;
-        const data = item.data();
+        const data = item.data;
+        const ownerUid = item.owner_uid;
+        const ownerEmail = item.owner_email || '';
+        const ownerName = item.owner_name || '';
         const displayName = data.raffle_name || raffleId;
         const prize = data.prize || 'Sin premio';
         const price = data.price || '0';
         const totalNumbers = data.total_numbers || '0';
-        if (!data.public_share_id) return;
+        const shareId = data.public_share_id;
+
+        if (!shareId) return;
 
         const adminUrl = `admin.html?raffle=${encodeURIComponent(raffleId)}`;
-        const shareId = data.public_share_id;
-const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
+        const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
+
+        const ownerBlock = isSuperAdmin()
+          ? `
+            <div class="mt-3 rounded-xl bg-lavLight/40 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Creada por</p>
+              <p class="text-sm font-semibold text-lavDark">${ownerName || 'Sin nombre'}</p>
+              <p class="text-xs text-lavDark/60 break-all">${ownerEmail || ownerUid}</p>
+            </div>
+          `
+          : '';
 
         const card = document.createElement('div');
         card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
 
         card.innerHTML = `
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-  <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
-  <p class="text-sm text-lavDark/60 mt-1">ID: ${raffleId}</p>
+          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+            <div class="flex-1">
+              <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
+              <p class="text-sm text-lavDark/60 mt-1">ID: ${raffleId}</p>
 
-  <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-    <div class="rounded-xl bg-peachLight px-3 py-2">
-      <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
-      <p class="text-sm font-semibold text-lavDark">${prize}</p>
-    </div>
-    <div class="rounded-xl bg-peachLight px-3 py-2">
-      <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
-      <p class="text-sm font-semibold text-lavDark">$${Number(price).toLocaleString('es-CL')}</p>
-    </div>
-    <div class="rounded-xl bg-peachLight px-3 py-2">
-      <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Cantidad</p>
-      <p class="text-sm font-semibold text-lavDark">${totalNumbers}</p>
-    </div>
-  </div>
-</div>
+              ${ownerBlock}
 
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full md:w-auto">
-  <a href="${adminUrl}" class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center">
-    Abrir admin
-  </a>
-  <a href="${clientUrl}" target="_blank" class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
-    Abrir cliente
-  </a>
-  <button class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-url="${clientUrl}">
-    Copiar link
-  </button>
-  <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-id="${raffleId}" data-name="${displayName}">
-    Borrar
-  </button>
-</div>          </div>
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
+                  <p class="text-sm font-semibold text-lavDark">${prize}</p>
+                </div>
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
+                  <p class="text-sm font-semibold text-lavDark">$${Number(price).toLocaleString('es-CL')}</p>
+                </div>
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Cantidad</p>
+                  <p class="text-sm font-semibold text-lavDark">${totalNumbers}</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full xl:w-auto">
+              <a href="${adminUrl}" class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center">
+                Abrir admin
+              </a>
+              <a href="${clientUrl}" target="_blank" class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
+                Abrir cliente
+              </a>
+              <button class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-url="${clientUrl}">
+                Copiar link
+              </button>
+              <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-owner="${ownerUid}" data-id="${raffleId}" data-name="${displayName}" data-share="${shareId}">
+                Borrar
+              </button>
+            </div>
+          </div>
         `;
 
         card.querySelector('.copy-client-btn').addEventListener('click', async (e) => {
@@ -329,38 +377,140 @@ const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
           await navigator.clipboard.writeText(new URL(url, window.location.href).toString());
           showStatus('Enlace cliente copiado.');
         });
+
         card.querySelector('.delete-raffle-btn').addEventListener('click', (e) => {
-  const id = e.currentTarget.dataset.id;
-  const name = e.currentTarget.dataset.name;
-  deleteRaffle(id, name);
-});
+          const owner = e.currentTarget.dataset.owner;
+          const id = e.currentTarget.dataset.id;
+          const name = e.currentTarget.dataset.name;
+          const share = e.currentTarget.dataset.share;
+          deleteRaffle(owner, id, name, share);
+        });
 
         list.appendChild(card);
       });
     }
 
-    function startRafflesListener() {
-      if (unsubscribeRaffles) unsubscribeRaffles();
+    async function fetchAllRafflesForSuperAdmin() {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const allRaffles = [];
 
-      unsubscribeRaffles = onSnapshot(rafflesColRef(), (snapshot) => {
-        const docs = snapshot.docs.sort((a, b) => {
-          const av = a.data().raffle_name || a.id;
-          const bv = b.data().raffle_name || b.id;
-          return av.localeCompare(bv, 'es');
+      for (const userDoc of usersSnap.docs) {
+        const userData = userDoc.data() || {};
+        const rafflesSnap = await getDocs(collection(db, 'users', userDoc.id, 'raffles'));
+
+        rafflesSnap.forEach((raffleDoc) => {
+          allRaffles.push({
+            id: raffleDoc.id,
+            data: raffleDoc.data(),
+            owner_uid: userDoc.id,
+            owner_email: userData.email || '',
+            owner_name: userData.display_name || ''
+          });
         });
+      }
+
+      allRaffles.sort((a, b) => {
+        const av = a.data.raffle_name || a.id;
+        const bv = b.data.raffle_name || b.id;
+        return av.localeCompare(bv, 'es');
+      });
+
+      renderRaffles(allRaffles);
+    }
+
+    function startOwnRafflesListener() {
+      if (unsubscribeOwnRaffles) unsubscribeOwnRaffles();
+
+      unsubscribeOwnRaffles = onSnapshot(rafflesColRef(), (snapshot) => {
+        const docs = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            data: d.data(),
+            owner_uid: currentUser.uid,
+            owner_email: currentProfile?.email || currentUser.email || '',
+            owner_name: currentProfile?.display_name || ''
+          }))
+          .sort((a, b) => {
+            const av = a.data.raffle_name || a.id;
+            const bv = b.data.raffle_name || b.id;
+            return av.localeCompare(bv, 'es');
+          });
 
         renderRaffles(docs);
       });
     }
 
-    function initProtectedArea(user) {
+    async function refreshDashboard() {
+      if (isSuperAdmin()) {
+        await fetchAllRafflesForSuperAdmin();
+      } else {
+        startOwnRafflesListener();
+      }
+    }
+
+    async function loadCurrentProfile(user) {
+      const snap = await getDoc(userProfileRef(user.uid));
+
+      if (!snap.exists()) {
+        showStatus('No se encontró el perfil del usuario en Firestore.', true);
+        throw new Error('Perfil de usuario no encontrado');
+      }
+
+      const data = snap.data();
+
+      if (data.active === false) {
+        await signOut(auth);
+        document.body.innerHTML = `
+          <main class="min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Acceso deshabilitado</h1>
+              <p class="text-lavDark/70">Tu cuenta está desactivada. Contacta a la administradora.</p>
+            </div>
+          </main>
+        `;
+        throw new Error('Usuario inactivo');
+      }
+
+      currentProfile = {
+        email: data.email || user.email || '',
+        display_name: data.display_name || '',
+        role: data.role || 'admin',
+        active: data.active !== false
+      };
+    }
+
+    function applyDashboardMode() {
+      const pageTitle = document.getElementById('pageTitle');
+      const pageSubtitle = document.getElementById('pageSubtitle');
+      const listTitle = document.getElementById('listTitle');
+      const createSection = document.getElementById('createSection');
+
+      if (isSuperAdmin()) {
+        pageTitle.textContent = 'Panel de Dirección';
+        pageSubtitle.textContent = 'Visualiza y administra las rifas de todas las maestras';
+        listTitle.textContent = 'Todas las rifas';
+        createSection.classList.add('hidden');
+      } else {
+        pageTitle.textContent = 'Mis Rifas';
+        pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
+        listTitle.textContent = 'Tus rifas';
+        createSection.classList.remove('hidden');
+      }
+    }
+
+    async function initProtectedArea(user) {
       currentUser = user;
+      await loadCurrentProfile(user);
+      applyDashboardMode();
 
       const userBox = document.getElementById('userBox');
       userBox.classList.remove('hidden');
-      userBox.textContent = `Sesión iniciada: ${user.email}`;
 
-      startRafflesListener();
+      const roleLabel = isSuperAdmin() ? 'superadmin' : 'admin';
+      const displayName = currentProfile.display_name || currentProfile.email || user.email || 'Usuario';
+      userBox.textContent = `${displayName} · ${roleLabel}`;
+
+      await refreshDashboard();
     }
 
     document.getElementById('createRaffleBtn').addEventListener('click', createRaffle);
@@ -379,13 +529,17 @@ const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
     auth = getAuth(app);
     db = getFirestore(app);
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (!user) {
         window.location.href = 'login.html';
         return;
       }
 
-      initProtectedArea(user);
+      try {
+        await initProtectedArea(user);
+      } catch (error) {
+        console.error(error);
+      }
     });
   </script>
 </body>
