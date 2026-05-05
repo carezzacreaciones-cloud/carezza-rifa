@@ -237,11 +237,6 @@
     async function createRaffle() {
       clearStatus();
 
-      if (isSuperAdmin()) {
-        showStatus('La cuenta superadmin no crea rifas desde este panel.', true);
-        return;
-      }
-
       const nameInput = document.getElementById('raffleNameInput');
       const slugInput = document.getElementById('raffleSlugInput');
 
@@ -763,17 +758,17 @@ async function loadCurrentProfile(user) {
       const listTitle = document.getElementById('listTitle');
       const createSection = document.getElementById('createSection');
 
-      if (isSuperAdmin()) {
-        pageTitle.textContent = 'Panel de Dirección';
-        pageSubtitle.textContent = 'Visualiza y administra las rifas de todas las maestras';
-        listTitle.textContent = 'Todas las rifas';
-        createSection.classList.add('hidden');
-      } else {
-        pageTitle.textContent = 'Mis Rifas';
-        pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
-        listTitle.textContent = 'Tus rifas';
-        createSection.classList.remove('hidden');
-      }
+if (isSuperAdmin()) {
+  pageTitle.textContent = 'Panel de Dirección';
+  pageSubtitle.textContent = 'Visualiza, crea y administra las rifas de todas las maestras';
+  listTitle.textContent = 'Todas las rifas';
+  createSection.classList.remove('hidden');
+} else {
+  pageTitle.textContent = 'Mis Rifas';
+  pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
+  listTitle.textContent = 'Tus rifas';
+  createSection.classList.remove('hidden');
+}
     }
 
     async function initProtectedArea(user) {
