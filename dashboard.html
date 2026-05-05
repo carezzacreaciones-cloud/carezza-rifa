@@ -1,822 +1,179 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard | Carezza Rifa</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    body { font-family: 'Nunito', sans-serif; }
-    .font-heading { font-family: 'Cormorant Garamond', serif; }
-  </style>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            lavender: '#b5a7cb',
-            peach: '#f8dcc0',
-            lavLight: '#e8e2f0',
-            peachLight: '#fdf0e4',
-            lavDark: '#8a7aa6'
-          }
-        }
-      }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard | Carezza Rifa</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getFirestore, collection, doc, setDoc, getDocs, getDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+const app = initializeApp(window.FIREBASE_CONFIG);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let currentProfile = null;
+
+const $ = id => document.getElementById(id);
+
+function show(msg){ $("status").innerText = msg }
+
+function slug(text){
+  return text.toLowerCase().replace(/[^a-z0-9]/g,"-")
+}
+
+function isSuper(){ return currentProfile?.role === "superadmin" }
+
+/* ---------------- CREAR RIFA ---------------- */
+
+async function createRaffle(){
+  const name = $("name").value.trim()
+  if(!name) return show("Escribe un nombre")
+
+  const id = slug(name)
+  const share = "share-"+Math.random().toString(36).slice(2)
+
+  await setDoc(doc(db,"users",currentUser.uid,"raffles",id),{
+    raffle_name:name,
+    public_share_id:share,
+    createdAt:serverTimestamp()
+  })
+
+  await setDoc(doc(db,"public_raffles",share),{
+    raffle_id:id,
+    owner_uid:currentUser.uid
+  })
+
+  show("Rifa creada")
+  loadDashboard()
+}
+
+/* ---------------- BORRAR ---------------- */
+
+async function deleteRaffle(owner,id,share){
+  if(!confirm("Eliminar rifa?")) return
+
+  await deleteDoc(doc(db,"users",owner,"raffles",id))
+  await deleteDoc(doc(db,"public_raffles",share))
+
+  loadDashboard()
+}
+
+/* ---------------- USUARIOS ---------------- */
+
+async function loadUsers(){
+  if(!isSuper()) return
+
+  const snap = await getDocs(collection(db,"users"))
+  $("users").innerHTML=""
+
+  snap.forEach(u=>{
+    const d=u.data()
+
+    const div=document.createElement("div")
+    div.innerHTML=`
+      <b>${d.email}</b> (${d.role})
+      <button onclick="setRole('${u.id}','admin')">admin</button>
+      <button onclick="setRole('${u.id}','superadmin')">super</button>
+    `
+    $("users").appendChild(div)
+  })
+}
+
+window.setRole = async (uid,role)=>{
+  await setDoc(doc(db,"users",uid),{role},{merge:true})
+  loadUsers()
+}
+
+/* ---------------- RIFAS ---------------- */
+
+async function loadRaffles(){
+  $("list").innerHTML=""
+
+  if(isSuper()){
+    const users = await getDocs(collection(db,"users"))
+
+    for(const u of users.docs){
+      const raffles = await getDocs(collection(db,"users",u.id,"raffles"))
+
+      raffles.forEach(r=>{
+        renderRaffle(r.id,r.data(),u.id)
+      })
     }
-  </script>
+  }else{
+    const raffles = await getDocs(collection(db,"users",currentUser.uid,"raffles"))
+    raffles.forEach(r=>{
+      renderRaffle(r.id,r.data(),currentUser.uid)
+    })
+  }
+}
+
+function renderRaffle(id,data,owner){
+  const div=document.createElement("div")
+
+  div.innerHTML=`
+    <b>${data.raffle_name}</b>
+    <a href="admin.html?raffle=${id}${isSuper() ? "&owner="+owner : ""}">Admin</a>
+    <a href="cliente.html?share=${data.public_share_id}" target="_blank">Cliente</a>
+    <button onclick="del('${owner}','${id}','${data.public_share_id}')">Borrar</button>
+  `
+
+  $("list").appendChild(div)
+}
+
+window.del = deleteRaffle
+
+/* ---------------- DASHBOARD ---------------- */
+
+async function loadProfile(user){
+  const snap = await getDoc(doc(db,"users",user.uid))
+  currentProfile = snap.data()
+}
+
+async function loadDashboard(){
+  await loadRaffles()
+  await loadUsers()
+}
+
+onAuthStateChanged(auth, async user=>{
+  if(!user) return location="login.html"
+
+  currentUser = user
+  await loadProfile(user)
+
+  loadDashboard()
+})
+
+window.logout = async ()=>{
+  await signOut(auth)
+  location="login.html"
+}
+
+window.create = createRaffle
+</script>
 </head>
-<body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
-  <section id="usersSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
-  <div class="flex items-center justify-between gap-3 mb-4">
-    <h2 class="font-heading text-3xl text-lavDark font-bold">Usuarios del sistema</h2>
-    <span id="usersCountBox" class="text-sm text-lavDark/60">0 usuarios</span>
-  </div>
 
-  <div id="usersList" class="grid grid-cols-1 gap-4">
-    <p class="text-lavDark/50">No hay usuarios para mostrar.</p>
-  </div>
-</section>
-  <main class="min-h-screen p-4 sm:p-6">
-    <div class="max-w-6xl mx-auto">
-      <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
-        <div class="text-center">
-          <h1 id="pageTitle" class="font-heading text-4xl text-lavDark font-bold">Mis Rifas</h1>
-          <p id="pageSubtitle" class="text-sm text-lavDark/60 mt-2">Crea, administra y comparte tus rifas</p>
-          <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
-        </div>
+<body style="font-family:sans-serif;padding:20px">
 
-        <div id="createSection" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              id="raffleNameInput"
-              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
-              placeholder="Ej: Rifa Día de la Madre"
-            />
-            <input
-              id="raffleSlugInput"
-              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
-              placeholder="Slug opcional: rifa-dia-madre"
-            />
-          </div>
-          <button
-            id="createRaffleBtn"
-            class="h-12 px-5 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
-          >
-            Crear rifa
-          </button>
-        </div>
+<h1>Dashboard</h1>
 
-        <div class="flex flex-wrap gap-3 mt-4">
-          <button
-            id="logoutBtn"
-            class="h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition"
-          >
-            Cerrar sesión
-          </button>
-        </div>
+<input id="name" placeholder="Nombre rifa">
+<button onclick="create()">Crear</button>
+<button onclick="logout()">Salir</button>
 
-        <div id="statusBox" class="mt-4 text-sm rounded-2xl px-4 py-3 bg-peachLight text-lavDark/80 hidden"></div>
-      </section>
+<p id="status"></p>
 
-      <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8">
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <h2 id="listTitle" class="font-heading text-3xl text-lavDark font-bold">Tus rifas</h2>
-          <span id="countBox" class="text-sm text-lavDark/60">0 rifas</span>
-        </div>
+<h2>Rifas</h2>
+<div id="list"></div>
 
-        <div id="rafflesList" class="grid grid-cols-1 gap-4">
-          <p class="text-lavDark/50">Aún no hay rifas para mostrar.</p>
-        </div>
-      </section>
+<h2>Usuarios (solo superadmin)</h2>
+<div id="users"></div>
 
-      <section id="usersSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <h2 class="font-heading text-3xl text-lavDark font-bold">Usuarios del sistema</h2>
-          <span id="usersCountBox" class="text-sm text-lavDark/60">0 usuarios</span>
-        </div>
-
-        <div id="usersList" class="grid grid-cols-1 gap-4">
-          <p class="text-lavDark/50">No hay usuarios para mostrar.</p>
-        </div>
-      </section>
-    </div>
-  </main>
-
-  <script src="firebase-config.js"></script>
-  <script type="module">
-    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
-    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
-    import {
-      getFirestore,
-      collection,
-      doc,
-      setDoc,
-      onSnapshot,
-      serverTimestamp,
-      getDoc,
-      getDocs,
-      deleteDoc,
-      writeBatch
-    } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
-
-    const defaultConfig = {
-      raffle_name: 'Gran Rifa',
-      prize: 'Una canasta sorpresa',
-      price: '2000',
-      whatsapp: '56933024232',
-      reserve_message: 'Hola, quiero reservar un número de la rifa y realizar el pago.',
-      payment_message: 'Para confirmar tu número, realiza el pago y envía el comprobante. Transferencia a: [TUS DATOS AQUÍ]',
-      total_numbers: '100'
-    };
-
-    let app, auth, db, currentUser = null, currentProfile = null;
-    /*let unsubscribeOwnRaffles = null;*/
-    let allUsersCache = [];
-    let unsubscribeOwnRaffles = null;
-
-    function showStatus(message, isError = false) {
-      const box = document.getElementById('statusBox');
-      box.textContent = message;
-      box.classList.remove('hidden');
-      box.className = 'mt-4 text-sm rounded-2xl px-4 py-3 ' + (
-        isError ? 'bg-red-50 text-red-600' : 'bg-peachLight text-lavDark/80'
-      );
-    }
-
-    function clearStatus() {
-      const box = document.getElementById('statusBox');
-      box.classList.add('hidden');
-      box.textContent = '';
-    }
-
-    function slugify(text) {
-      return String(text || '')
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .replace(/-{2,}/g, '-')
-        .slice(0, 50);
-    }
-
-    function generateShareId() {
-      return 'share-' + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-    }
-
-    function isSuperAdmin() {
-      return currentProfile?.role === 'superadmin';
-    }
-
-    function userProfileRef(userId) {
-      return doc(db, 'users', userId);
-    }
-
-    function rafflesColRef(userId = currentUser.uid) {
-      return collection(db, 'users', userId, 'raffles');
-    }
-
-    function raffleDocRef(raffleId, userId = currentUser.uid) {
-      return doc(db, 'users', userId, 'raffles', raffleId);
-    }
-
-    function raffleConfigRef(raffleId, userId = currentUser.uid) {
-      return doc(db, 'users', userId, 'raffles', raffleId, 'meta', 'config');
-    }
-
-    function raffleTicketsColRef(raffleId, userId = currentUser.uid) {
-      return collection(db, 'users', userId, 'raffles', raffleId, 'tickets');
-    }
-
-    function publicRaffleRef(shareId) {
-      return doc(db, 'public_raffles', shareId);
-    }
-
-    async function ensureRootRaffleDoc(raffleId, raffleName, shareId) {
-      await setDoc(raffleDocRef(raffleId), {
-        raffle_id: raffleId,
-        raffle_name: raffleName,
-        public_share_id: shareId,
-        prize: defaultConfig.prize,
-        price: defaultConfig.price,
-        total_numbers: defaultConfig.total_numbers,
-        created_by_uid: currentUser.uid,
-        created_by_email: currentUser.email || '',
-        created_by_name: currentProfile?.display_name || currentUser.email || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    }
-
-    async function ensurePublicRaffleDoc(shareId, raffleId, raffleName) {
-      await setDoc(publicRaffleRef(shareId), {
-        owner_uid: currentUser.uid,
-        raffle_id: raffleId,
-        raffle_name: raffleName,
-        created_by_uid: currentUser.uid,
-        created_by_email: currentUser.email || '',
-        created_by_name: currentProfile?.display_name || currentUser.email || '',
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
-    }
-
-    async function ensureRaffleConfig(raffleId, raffleName) {
-      const snap = await getDoc(raffleConfigRef(raffleId));
-      if (!snap.exists()) {
-        await setDoc(raffleConfigRef(raffleId), {
-          ...defaultConfig,
-          raffle_name: raffleName || defaultConfig.raffle_name,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      }
-    }
-
-    async function createRaffle() {
-      clearStatus();
-
-      const nameInput = document.getElementById('raffleNameInput');
-      const slugInput = document.getElementById('raffleSlugInput');
-
-      const raffleName = nameInput.value.trim();
-      let raffleId = slugify(slugInput.value.trim());
-
-      if (!raffleName) {
-        showStatus('Debes escribir un nombre para la rifa.', true);
-        return;
-      }
-
-      if (!raffleId) {
-        raffleId = slugify(raffleName);
-      }
-
-      if (!raffleId) {
-        showStatus('No se pudo generar un identificador para la rifa.', true);
-        return;
-      }
-
-      try {
-        const shareId = generateShareId();
-
-        await ensureRootRaffleDoc(raffleId, raffleName, shareId);
-        await ensurePublicRaffleDoc(shareId, raffleId, raffleName);
-        await ensureRaffleConfig(raffleId, raffleName);
-
-        nameInput.value = '';
-        slugInput.value = '';
-
-        showStatus('Rifa creada correctamente.');
-        await refreshDashboard();
-      } catch (error) {
-        console.error(error);
-        showStatus('Error al crear la rifa.', true);
-      }
-    }
-
-    async function deleteRaffle(ownerUid, raffleId, raffleName, shareId) {
-      const ok = window.confirm(`¿Seguro que quieres borrar la rifa "${raffleName}"? Esta acción eliminará tickets, configuración y la rifa del panel.`);
-      if (!ok) return;
-
-      try {
-        const ticketsSnap = await getDocs(raffleTicketsColRef(raffleId, ownerUid));
-
-        if (!ticketsSnap.empty) {
-          const docs = ticketsSnap.docs;
-          for (let i = 0; i < docs.length; i += 400) {
-            const batch = writeBatch(db);
-            docs.slice(i, i + 400).forEach((d) => batch.delete(d.ref));
-            await batch.commit();
-          }
-        }
-
-        await deleteDoc(raffleConfigRef(raffleId, ownerUid));
-        await deleteDoc(raffleDocRef(raffleId, ownerUid));
-
-        if (shareId) {
-          await deleteDoc(publicRaffleRef(shareId));
-        }
-
-        showStatus(`Rifa "${raffleName}" eliminada correctamente.`);
-        await refreshDashboard();
-      } catch (error) {
-        console.error(error);
-        showStatus('Error al eliminar la rifa.', true);
-      }
-    }
-
-    function renderRaffles(items) {
-      const list = document.getElementById('rafflesList');
-      const countBox = document.getElementById('countBox');
-
-      countBox.textContent = `${items.length} ${items.length === 1 ? 'rifa' : 'rifas'}`;
-
-      if (!items.length) {
-        list.innerHTML = '<p class="text-lavDark/50">Aún no hay rifas para mostrar.</p>';
-        return;
-      }
-
-      list.innerHTML = '';
-
-      items.forEach((item) => {
-        const raffleId = item.id;
-        const data = item.data;
-        const ownerUid = item.owner_uid;
-        const ownerEmail = item.owner_email || '';
-        const ownerName = item.owner_name || '';
-        const displayName = data.raffle_name || raffleId;
-        const prize = data.prize || 'Sin premio';
-        const price = data.price || '0';
-        const totalNumbers = data.total_numbers || '0';
-        const shareId = data.public_share_id;
-
-        if (!shareId) return;
-
-        const adminUrl = `admin.html?raffle=${encodeURIComponent(raffleId)}`;
-        const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
-
-        const ownerBlock = isSuperAdmin()
-          ? `
-            <div class="mt-3 rounded-xl bg-lavLight/40 px-3 py-2">
-              <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Creada por</p>
-              <p class="text-sm font-semibold text-lavDark">${ownerName || 'Sin nombre'}</p>
-              <p class="text-xs text-lavDark/60 break-all">${ownerEmail || ownerUid}</p>
-            </div>
-          `
-          : '';
-
-        const card = document.createElement('div');
-        card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
-
-        card.innerHTML = `
-          <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-            <div class="flex-1">
-              <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
-              <p class="text-sm text-lavDark/60 mt-1">ID: ${raffleId}</p>
-
-              ${ownerBlock}
-
-              <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div class="rounded-xl bg-peachLight px-3 py-2">
-                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
-                  <p class="text-sm font-semibold text-lavDark">${prize}</p>
-                </div>
-                <div class="rounded-xl bg-peachLight px-3 py-2">
-                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
-                  <p class="text-sm font-semibold text-lavDark">$${Number(price).toLocaleString('es-CL')}</p>
-                </div>
-                <div class="rounded-xl bg-peachLight px-3 py-2">
-                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Cantidad</p>
-                  <p class="text-sm font-semibold text-lavDark">${totalNumbers}</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full xl:w-auto">
-              <a href="${adminUrl}" class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center">
-                Abrir admin
-              </a>
-              <a href="${clientUrl}" target="_blank" class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
-                Abrir cliente
-              </a>
-              <button class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-url="${clientUrl}">
-                Copiar link
-              </button>
-              <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-owner="${ownerUid}" data-id="${raffleId}" data-name="${displayName}" data-share="${shareId}">
-                Borrar
-              </button>
-            </div>
-          </div>
-        `;
-
-        card.querySelector('.copy-client-btn').addEventListener('click', async (e) => {
-          const url = e.currentTarget.dataset.url;
-          await navigator.clipboard.writeText(new URL(url, window.location.href).toString());
-          showStatus('Enlace cliente copiado.');
-        });
-
-        card.querySelector('.delete-raffle-btn').addEventListener('click', (e) => {
-          const owner = e.currentTarget.dataset.owner;
-          const id = e.currentTarget.dataset.id;
-          const name = e.currentTarget.dataset.name;
-          const share = e.currentTarget.dataset.share;
-          deleteRaffle(owner, id, name, share);
-        });
-
-        list.appendChild(card);
-      });
-    }
-    function isSuperAdmin() {
-  return currentProfile?.role === 'superadmin';
-}
-
-function userProfileRef(userId) {
-  return doc(db, 'users', userId);
-}
-
-async function renderUsers(users) {
-  const section = document.getElementById('usersSection');
-  const list = document.getElementById('usersList');
-  const countBox = document.getElementById('usersCountBox');
-
-  if (!isSuperAdmin()) {
-    section.classList.add('hidden');
-    return;
-  }
-
-  section.classList.remove('hidden');
-  countBox.textContent = `${users.length} ${users.length === 1 ? 'usuario' : 'usuarios'}`;
-
-  if (!users.length) {
-    list.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
-    return;
-  }
-
-  list.innerHTML = '';
-
-  users.forEach((user) => {
-    const displayName = user.display_name || 'Sin nombre';
-    const email = user.email || 'Sin correo';
-    const role = user.role || 'admin';
-    const active = user.active !== false;
-    const isCurrentUser = currentUser && currentUser.uid === user.uid;
-
-    const card = document.createElement('div');
-    card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
-
-    card.innerHTML = `
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-        <div>
-          <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
-          <p class="text-sm text-lavDark/60 mt-1 break-all">${email}</p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${role === 'superadmin' ? 'bg-violet-100 text-violet-700' : 'bg-peachLight text-lavDark'}">${role}</span>
-            <span class="px-3 py-1 rounded-full text-xs font-semibold ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}">${active ? 'activo' : 'inactivo'}</span>
-            ${isCurrentUser ? '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-lavLight text-lavDark">tu cuenta</span>' : ''}
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
-          <button class="role-admin-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-uid="${user.uid}">
-            Hacer admin
-          </button>
-
-          <button class="role-super-btn h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition" data-uid="${user.uid}">
-            Hacer superadmin
-          </button>
-
-          <button class="toggle-active-btn h-11 px-4 rounded-2xl bg-white ${active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'} border font-semibold transition" data-uid="${user.uid}" data-active="${active}">
-            ${active ? 'Desactivar' : 'Activar'}
-          </button>
-        </div>
-      </div>
-    `;
-
-    card.querySelector('.role-admin-btn').addEventListener('click', () => updateUserRole(user.uid, 'admin'));
-    card.querySelector('.role-super-btn').addEventListener('click', () => updateUserRole(user.uid, 'superadmin'));
-    card.querySelector('.toggle-active-btn').addEventListener('click', () => toggleUserActive(user.uid, active));
-
-    list.appendChild(card);
-  });
-}
-
-async function fetchAllUsersForSuperAdmin() {
-  const usersSnap = await getDocs(collection(db, 'users'));
-  const users = usersSnap.docs.map((userDoc) => ({
-    uid: userDoc.id,
-    ...userDoc.data()
-  }));
-
-  users.sort((a, b) => {
-    const av = a.display_name || a.email || a.uid;
-    const bv = b.display_name || b.email || b.uid;
-    return av.localeCompare(bv, 'es');
-  });
-
-  renderUsers(users);
-}
-
-async function updateUserRole(uid, newRole) {
-  try {
-    await setDoc(doc(db, 'users', uid), {
-      role: newRole,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    showStatus(`Rol actualizado a "${newRole}" correctamente.`);
-    await fetchAllUsersForSuperAdmin();
-  } catch (error) {
-    console.error(error);
-    showStatus('Error al actualizar el rol del usuario.', true);
-  }
-}
-
-async function toggleUserActive(uid, currentActive) {
-  try {
-    await setDoc(doc(db, 'users', uid), {
-      active: !currentActive,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
-    await fetchAllUsersForSuperAdmin();
-  } catch (error) {
-    console.error(error);
-    showStatus('Error al cambiar el estado del usuario.', true);
-  }
-}
-
-async function loadCurrentProfile(user) {
-  const snap = await getDoc(userProfileRef(user.uid));
-  if (!snap.exists()) throw new Error('Perfil no encontrado');
-
-  const data = snap.data();
-  currentProfile = {
-    email: data.email || user.email || '',
-    display_name: data.display_name || '',
-    role: data.role || 'admin',
-    active: data.active !== false
-  };
-}
-
-    function renderUsers(users) {
-      const section = document.getElementById('usersSection');
-      const list = document.getElementById('usersList');
-      const countBox = document.getElementById('usersCountBox');
-
-      if (!isSuperAdmin()) {
-        section.classList.add('hidden');
-        return;
-      }
-
-      section.classList.remove('hidden');
-      countBox.textContent = `${users.length} ${users.length === 1 ? 'usuario' : 'usuarios'}`;
-
-      if (!users.length) {
-        list.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
-        return;
-      }
-
-      list.innerHTML = '';
-
-      users.forEach((user) => {
-        const displayName = user.display_name || 'Sin nombre';
-        const email = user.email || 'Sin correo';
-        const role = user.role || 'admin';
-        const active = user.active !== false;
-
-        const isCurrentUser = currentUser && currentUser.uid === user.uid;
-
-        const card = document.createElement('div');
-        card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
-
-        card.innerHTML = `
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
-              <p class="text-sm text-lavDark/60 mt-1 break-all">${email}</p>
-              <div class="mt-3 flex flex-wrap gap-2">
-                <span class="px-3 py-1 rounded-full text-xs font-semibold ${role === 'superadmin' ? 'bg-violet-100 text-violet-700' : 'bg-peachLight text-lavDark'}">
-                  ${role}
-                </span>
-                <span class="px-3 py-1 rounded-full text-xs font-semibold ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}">
-                  ${active ? 'activo' : 'inactivo'}
-                </span>
-                ${isCurrentUser ? '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-lavLight text-lavDark">tu cuenta</span>' : ''}
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
-              <button class="role-admin-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
-                data-uid="${user.uid}">
-                Hacer admin
-              </button>
-
-              <button class="role-super-btn h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
-                data-uid="${user.uid}">
-                Hacer superadmin
-              </button>
-
-              <button class="toggle-active-btn h-11 px-4 rounded-2xl bg-white ${active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'} border font-semibold transition"
-                data-uid="${user.uid}"
-                data-active="${active}">
-                ${active ? 'Desactivar' : 'Activar'}
-              </button>
-            </div>
-          </div>
-        `;
-
-        card.querySelector('.role-admin-btn').addEventListener('click', () => updateUserRole(user.uid, 'admin'));
-        card.querySelector('.role-super-btn').addEventListener('click', () => updateUserRole(user.uid, 'superadmin'));
-        card.querySelector('.toggle-active-btn').addEventListener('click', () => toggleUserActive(user.uid, active));
-
-        list.appendChild(card);
-      });
-    }
-
-    async function fetchAllRafflesForSuperAdmin() {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const allRaffles = [];
-
-      for (const userDoc of usersSnap.docs) {
-        const userData = userDoc.data() || {};
-        const rafflesSnap = await getDocs(collection(db, 'users', userDoc.id, 'raffles'));
-
-        rafflesSnap.forEach((raffleDoc) => {
-          allRaffles.push({
-            id: raffleDoc.id,
-            data: raffleDoc.data(),
-            owner_uid: userDoc.id,
-            owner_email: userData.email || '',
-            owner_name: userData.display_name || ''
-          });
-        });
-      }
-
-      allRaffles.sort((a, b) => {
-        const av = a.data.raffle_name || a.id;
-        const bv = b.data.raffle_name || b.id;
-        return av.localeCompare(bv, 'es');
-      });
-
-      renderRaffles(allRaffles);
-    }
-
-    async function fetchAllUsersForSuperAdmin() {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const users = usersSnap.docs.map((userDoc) => ({
-        uid: userDoc.id,
-        ...userDoc.data()
-      }));
-
-      users.sort((a, b) => {
-        const av = a.display_name || a.email || a.uid;
-        const bv = b.display_name || b.email || b.uid;
-        return av.localeCompare(bv, 'es');
-      });
-
-      allUsersCache = users;
-      renderUsers(users);
-    }
-    async function updateUserRole(uid, newRole) {
-  try {
-    await setDoc(doc(db, 'users', uid), {
-      role: newRole,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    showStatus(`Rol actualizado a "${newRole}" correctamente.`);
-    await fetchAllUsersForSuperAdmin();
-  } catch (error) {
-    console.error(error);
-    showStatus('Error al actualizar el rol del usuario.', true);
-  }
-}
-    async function toggleUserActive(uid, currentActive) {
-  try {
-    await setDoc(doc(db, 'users', uid), {
-      active: !currentActive,
-      updatedAt: serverTimestamp()
-    }, { merge: true });
-
-    showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
-    await fetchAllUsersForSuperAdmin();
-  } catch (error) {
-    console.error(error);
-    showStatus('Error al cambiar el estado del usuario.', true);
-  }
-}
-
-    function startOwnRafflesListener() {
-      if (unsubscribeOwnRaffles) unsubscribeOwnRaffles();
-
-      unsubscribeOwnRaffles = onSnapshot(rafflesColRef(), (snapshot) => {
-        const docs = snapshot.docs
-          .map((d) => ({
-            id: d.id,
-            data: d.data(),
-            owner_uid: currentUser.uid,
-            owner_email: currentProfile?.email || currentUser.email || '',
-            owner_name: currentProfile?.display_name || ''
-          }))
-          .sort((a, b) => {
-            const av = a.data.raffle_name || a.id;
-            const bv = b.data.raffle_name || b.id;
-            return av.localeCompare(bv, 'es');
-          });
-
-        renderRaffles(docs);
-      });
-    }
-
-   async function refreshDashboard() {
-  if (isSuperAdmin()) {
-    await fetchAllRafflesForSuperAdmin();
-    await fetchAllUsersForSuperAdmin();
-  } else {
-    startOwnRafflesListener();
-    const usersSection = document.getElementById('usersSection');
-    if (usersSection) usersSection.classList.add('hidden');
-  }
-}
-
-    async function loadCurrentProfile(user) {
-      const snap = await getDoc(userProfileRef(user.uid));
-
-      if (!snap.exists()) {
-        showStatus('No se encontró el perfil del usuario en Firestore.', true);
-        throw new Error('Perfil de usuario no encontrado');
-      }
-
-      const data = snap.data();
-
-      if (data.active === false) {
-        await signOut(auth);
-        document.body.innerHTML = `
-          <main class="min-h-screen flex items-center justify-center p-4">
-            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
-              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Acceso deshabilitado</h1>
-              <p class="text-lavDark/70">Tu cuenta está desactivada. Contacta a la administradora.</p>
-            </div>
-          </main>
-        `;
-        throw new Error('Usuario inactivo');
-      }
-
-      currentProfile = {
-        email: data.email || user.email || '',
-        display_name: data.display_name || '',
-        role: data.role || 'admin',
-        active: data.active !== false
-      };
-    }
-
-    function applyDashboardMode() {
-      const pageTitle = document.getElementById('pageTitle');
-      const pageSubtitle = document.getElementById('pageSubtitle');
-      const listTitle = document.getElementById('listTitle');
-      const createSection = document.getElementById('createSection');
-
-if (isSuperAdmin()) {
-  pageTitle.textContent = 'Panel de Dirección';
-  pageSubtitle.textContent = 'Visualiza, crea y administra las rifas de todas las maestras';
-  listTitle.textContent = 'Todas las rifas';
-  createSection.classList.remove('hidden');
-} else {
-  pageTitle.textContent = 'Mis Rifas';
-  pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
-  listTitle.textContent = 'Tus rifas';
-  createSection.classList.remove('hidden');
-}
-    }
-
-    async function initProtectedArea(user) {
-  currentUser = user;
-  await loadCurrentProfile(user);
-
-  const userBox = document.getElementById('userBox');
-  userBox.classList.remove('hidden');
-  userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
-
-  if (isSuperAdmin()) {
-    await fetchAllUsersForSuperAdmin();
-  } else {
-    const usersSection = document.getElementById('usersSection');
-    if (usersSection) usersSection.classList.add('hidden');
-  }
-
-  startOwnRafflesListener();
-}
-
-    document.getElementById('createRaffleBtn').addEventListener('click', createRaffle);
-
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-      await signOut(auth);
-      window.location.href = 'login.html';
-    });
-
-    if (!window.FIREBASE_CONFIG) {
-      alert('Falta firebase-config.js');
-      throw new Error('Falta firebase-config.js');
-    }
-
-    app = initializeApp(window.FIREBASE_CONFIG);
-    auth = getAuth(app);
-    db = getFirestore(app);
-
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        window.location.href = 'login.html';
-        return;
-      }
-
-      try {
-        await initProtectedArea(user);
-      } catch (error) {
-        console.error(error);
-      }
-    });
-  </script>
 </body>
 </html>
