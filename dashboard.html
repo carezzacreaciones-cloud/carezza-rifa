@@ -79,6 +79,17 @@
           <p class="text-lavDark/50">Aún no hay rifas para mostrar.</p>
         </div>
       </section>
+
+      <section id="usersSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 class="font-heading text-3xl text-lavDark font-bold">Usuarios del sistema</h2>
+          <span id="usersCountBox" class="text-sm text-lavDark/60">0 usuarios</span>
+        </div>
+
+        <div id="usersList" class="grid grid-cols-1 gap-4">
+          <p class="text-lavDark/50">No hay usuarios para mostrar.</p>
+        </div>
+      </section>
     </div>
   </main>
 
@@ -110,6 +121,7 @@
     };
 
     let app, auth, db, currentUser = null, currentProfile = null;
+    let allUsersCache = [];
     let unsubscribeOwnRaffles = null;
 
     function showStatus(message, isError = false) {
@@ -390,6 +402,81 @@
       });
     }
 
+    function renderUsers(users) {
+      const section = document.getElementById('usersSection');
+      const list = document.getElementById('usersList');
+      const countBox = document.getElementById('usersCountBox');
+
+      if (!isSuperAdmin()) {
+        section.classList.add('hidden');
+        return;
+      }
+
+      section.classList.remove('hidden');
+      countBox.textContent = `${users.length} ${users.length === 1 ? 'usuario' : 'usuarios'}`;
+
+      if (!users.length) {
+        list.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
+        return;
+      }
+
+      list.innerHTML = '';
+
+      users.forEach((user) => {
+        const displayName = user.display_name || 'Sin nombre';
+        const email = user.email || 'Sin correo';
+        const role = user.role || 'admin';
+        const active = user.active !== false;
+
+        const isCurrentUser = currentUser && currentUser.uid === user.uid;
+
+        const card = document.createElement('div');
+        card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
+
+        card.innerHTML = `
+          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
+              <p class="text-sm text-lavDark/60 mt-1 break-all">${email}</p>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <span class="px-3 py-1 rounded-full text-xs font-semibold ${role === 'superadmin' ? 'bg-violet-100 text-violet-700' : 'bg-peachLight text-lavDark'}">
+                  ${role}
+                </span>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}">
+                  ${active ? 'activo' : 'inactivo'}
+                </span>
+                ${isCurrentUser ? '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-lavLight text-lavDark">tu cuenta</span>' : ''}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
+              <button class="role-admin-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
+                data-uid="${user.uid}">
+                Hacer admin
+              </button>
+
+              <button class="role-super-btn h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
+                data-uid="${user.uid}">
+                Hacer superadmin
+              </button>
+
+              <button class="toggle-active-btn h-11 px-4 rounded-2xl bg-white ${active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'} border font-semibold transition"
+                data-uid="${user.uid}"
+                data-active="${active}">
+                ${active ? 'Desactivar' : 'Activar'}
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.role-admin-btn').addEventListener('click', () => updateUserRole(user.uid, 'admin'));
+        card.querySelector('.role-super-btn').addEventListener('click', () => updateUserRole(user.uid, 'superadmin'));
+        card.querySelector('.toggle-active-btn').addEventListener('click', () => toggleUserActive(user.uid, active));
+
+        list.appendChild(card);
+      });
+    }
+
     async function fetchAllRafflesForSuperAdmin() {
       const usersSnap = await getDocs(collection(db, 'users'));
       const allRaffles = [];
@@ -418,6 +505,23 @@
       renderRaffles(allRaffles);
     }
 
+    async function fetchAllUsersForSuperAdmin() {
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const users = usersSnap.docs.map((userDoc) => ({
+        uid: userDoc.id,
+        ...userDoc.data()
+      }));
+
+      users.sort((a, b) => {
+        const av = a.display_name || a.email || a.uid;
+        const bv = b.display_name || b.email || b.uid;
+        return av.localeCompare(bv, 'es');
+      });
+
+      allUsersCache = users;
+      renderUsers(users);
+    }
+
     function startOwnRafflesListener() {
       if (unsubscribeOwnRaffles) unsubscribeOwnRaffles();
 
@@ -443,6 +547,7 @@
     async function refreshDashboard() {
       if (isSuperAdmin()) {
         await fetchAllRafflesForSuperAdmin();
+        await fetchAllUsersForSuperAdmin();
       } else {
         startOwnRafflesListener();
       }
