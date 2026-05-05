@@ -521,6 +521,34 @@
       allUsersCache = users;
       renderUsers(users);
     }
+    async function updateUserRole(uid, newRole) {
+  try {
+    await setDoc(doc(db, 'users', uid), {
+      role: newRole,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    showStatus(`Rol actualizado a "${newRole}" correctamente.`);
+    await fetchAllUsersForSuperAdmin();
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al actualizar el rol del usuario.', true);
+  }
+}
+    async function toggleUserActive(uid, currentActive) {
+  try {
+    await setDoc(doc(db, 'users', uid), {
+      active: !currentActive,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
+    await fetchAllUsersForSuperAdmin();
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al cambiar el estado del usuario.', true);
+  }
+}
 
     function startOwnRafflesListener() {
       if (unsubscribeOwnRaffles) unsubscribeOwnRaffles();
@@ -544,14 +572,16 @@
       });
     }
 
-    async function refreshDashboard() {
-      if (isSuperAdmin()) {
-        await fetchAllRafflesForSuperAdmin();
-        await fetchAllUsersForSuperAdmin();
-      } else {
-        startOwnRafflesListener();
-      }
-    }
+   async function refreshDashboard() {
+  if (isSuperAdmin()) {
+    await fetchAllRafflesForSuperAdmin();
+    await fetchAllUsersForSuperAdmin();
+  } else {
+    startOwnRafflesListener();
+    const usersSection = document.getElementById('usersSection');
+    if (usersSection) usersSection.classList.add('hidden');
+  }
+}
 
     async function loadCurrentProfile(user) {
       const snap = await getDoc(userProfileRef(user.uid));
