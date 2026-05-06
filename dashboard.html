@@ -27,6 +27,16 @@
   </script>
 </head>
 <body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+  <section id="usersSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
+  <div class="flex items-center justify-between gap-3 mb-4">
+    <h2 class="font-heading text-3xl text-lavDark font-bold">Usuarios del sistema</h2>
+    <span id="usersCountBox" class="text-sm text-lavDark/60">0 usuarios</span>
+  </div>
+
+  <div id="usersList" class="grid grid-cols-1 gap-4">
+    <p class="text-lavDark/50">No hay usuarios para mostrar.</p>
+  </div>
+</section>
   <main class="min-h-screen p-4 sm:p-6">
     <div class="max-w-6xl mx-auto">
       <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
@@ -120,9 +130,9 @@
       total_numbers: '100'
     };
 
-    let app, auth, db;
-    let currentUser = null;
-    let currentProfile = null;
+    let app, auth, db, currentUser = null, currentProfile = null;
+    /*let unsubscribeOwnRaffles = null;*/
+    let allUsersCache = [];
     let unsubscribeOwnRaffles = null;
 
     function showStatus(message, isError = false) {
@@ -248,12 +258,6 @@
       }
 
       try {
-        const existingSnap = await getDoc(raffleDocRef(raffleId));
-        if (existingSnap.exists()) {
-          showStatus('Ya existe una rifa con ese slug. Usa otro slug o cambia el nombre.', true);
-          return;
-        }
-
         const shareId = generateShareId();
 
         await ensureRootRaffleDoc(raffleId, raffleName, shareId);
@@ -267,7 +271,7 @@
         await refreshDashboard();
       } catch (error) {
         console.error(error);
-        showStatus('Error al crear la rifa. Revisa permisos o conexión.', true);
+        showStatus('Error al crear la rifa.', true);
       }
     }
 
@@ -317,7 +321,7 @@
 
       items.forEach((item) => {
         const raffleId = item.id;
-        const data = item.data || {};
+        const data = item.data;
         const ownerUid = item.owner_uid;
         const ownerEmail = item.owner_email || '';
         const ownerName = item.owner_name || '';
@@ -329,10 +333,7 @@
 
         if (!shareId) return;
 
-        const adminUrl = isSuperAdmin()
-          ? `admin.html?raffle=${encodeURIComponent(raffleId)}&owner=${encodeURIComponent(ownerUid)}`
-          : `admin.html?raffle=${encodeURIComponent(raffleId)}`;
-
+        const adminUrl = `admin.html?raffle=${encodeURIComponent(raffleId)}`;
         const clientUrl = `cliente.html?share=${encodeURIComponent(shareId)}`;
 
         const ownerBlock = isSuperAdmin()
@@ -406,6 +407,138 @@
         list.appendChild(card);
       });
     }
+    function isSuperAdmin() {
+  return currentProfile?.role === 'superadmin';
+}
+
+function userProfileRef(userId) {
+  return doc(db, 'users', userId);
+}
+
+async function renderUsers(users) {
+  const section = document.getElementById('usersSection');
+  const list = document.getElementById('usersList');
+  const countBox = document.getElementById('usersCountBox');
+
+  if (!isSuperAdmin()) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  section.classList.remove('hidden');
+  countBox.textContent = `${users.length} ${users.length === 1 ? 'usuario' : 'usuarios'}`;
+
+  if (!users.length) {
+    list.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
+    return;
+  }
+
+  list.innerHTML = '';
+
+  users.forEach((user) => {
+    const displayName = user.display_name || 'Sin nombre';
+    const email = user.email || 'Sin correo';
+    const role = user.role || 'admin';
+    const active = user.active !== false;
+    const isCurrentUser = currentUser && currentUser.uid === user.uid;
+
+    const card = document.createElement('div');
+    card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
+
+    card.innerHTML = `
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+        <div>
+          <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
+          <p class="text-sm text-lavDark/60 mt-1 break-all">${email}</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${role === 'superadmin' ? 'bg-violet-100 text-violet-700' : 'bg-peachLight text-lavDark'}">${role}</span>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold ${active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-600'}">${active ? 'activo' : 'inactivo'}</span>
+            ${isCurrentUser ? '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-lavLight text-lavDark">tu cuenta</span>' : ''}
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
+          <button class="role-admin-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-uid="${user.uid}">
+            Hacer admin
+          </button>
+
+          <button class="role-super-btn h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition" data-uid="${user.uid}">
+            Hacer superadmin
+          </button>
+
+          <button class="toggle-active-btn h-11 px-4 rounded-2xl bg-white ${active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'} border font-semibold transition" data-uid="${user.uid}" data-active="${active}">
+            ${active ? 'Desactivar' : 'Activar'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    card.querySelector('.role-admin-btn').addEventListener('click', () => updateUserRole(user.uid, 'admin'));
+    card.querySelector('.role-super-btn').addEventListener('click', () => updateUserRole(user.uid, 'superadmin'));
+    card.querySelector('.toggle-active-btn').addEventListener('click', () => toggleUserActive(user.uid, active));
+
+    list.appendChild(card);
+  });
+}
+
+async function fetchAllUsersForSuperAdmin() {
+  const usersSnap = await getDocs(collection(db, 'users'));
+  const users = usersSnap.docs.map((userDoc) => ({
+    uid: userDoc.id,
+    ...userDoc.data()
+  }));
+
+  users.sort((a, b) => {
+    const av = a.display_name || a.email || a.uid;
+    const bv = b.display_name || b.email || b.uid;
+    return av.localeCompare(bv, 'es');
+  });
+
+  renderUsers(users);
+}
+
+async function updateUserRole(uid, newRole) {
+  try {
+    await setDoc(doc(db, 'users', uid), {
+      role: newRole,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    showStatus(`Rol actualizado a "${newRole}" correctamente.`);
+    await fetchAllUsersForSuperAdmin();
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al actualizar el rol del usuario.', true);
+  }
+}
+
+async function toggleUserActive(uid, currentActive) {
+  try {
+    await setDoc(doc(db, 'users', uid), {
+      active: !currentActive,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+
+    showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
+    await fetchAllUsersForSuperAdmin();
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al cambiar el estado del usuario.', true);
+  }
+}
+
+async function loadCurrentProfile(user) {
+  const snap = await getDoc(userProfileRef(user.uid));
+  if (!snap.exists()) throw new Error('Perfil no encontrado');
+
+  const data = snap.data();
+  currentProfile = {
+    email: data.email || user.email || '',
+    display_name: data.display_name || '',
+    role: data.role || 'admin',
+    active: data.active !== false
+  };
+}
 
     function renderUsers(users) {
       const section = document.getElementById('usersSection');
@@ -432,6 +565,7 @@
         const email = user.email || 'Sin correo';
         const role = user.role || 'admin';
         const active = user.active !== false;
+
         const isCurrentUser = currentUser && currentUser.uid === user.uid;
 
         const card = document.createElement('div');
@@ -454,13 +588,19 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
-              <button class="role-admin-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-uid="${user.uid}">
+              <button class="role-admin-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
+                data-uid="${user.uid}">
                 Hacer admin
               </button>
-              <button class="role-super-btn h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition" data-uid="${user.uid}">
+
+              <button class="role-super-btn h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
+                data-uid="${user.uid}">
                 Hacer superadmin
               </button>
-              <button class="toggle-active-btn h-11 px-4 rounded-2xl bg-white ${active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'} border font-semibold transition" data-uid="${user.uid}" data-active="${active}">
+
+              <button class="toggle-active-btn h-11 px-4 rounded-2xl bg-white ${active ? 'text-red-500 border-red-200 hover:bg-red-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'} border font-semibold transition"
+                data-uid="${user.uid}"
+                data-active="${active}">
                 ${active ? 'Desactivar' : 'Activar'}
               </button>
             </div>
@@ -516,38 +656,37 @@
         return av.localeCompare(bv, 'es');
       });
 
+      allUsersCache = users;
       renderUsers(users);
     }
-
     async function updateUserRole(uid, newRole) {
-      try {
-        await setDoc(doc(db, 'users', uid), {
-          role: newRole,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+  try {
+    await setDoc(doc(db, 'users', uid), {
+      role: newRole,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
 
-        showStatus(`Rol actualizado a "${newRole}" correctamente.`);
-        await fetchAllUsersForSuperAdmin();
-      } catch (error) {
-        console.error(error);
-        showStatus('Error al actualizar el rol del usuario.', true);
-      }
-    }
-
+    showStatus(`Rol actualizado a "${newRole}" correctamente.`);
+    await fetchAllUsersForSuperAdmin();
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al actualizar el rol del usuario.', true);
+  }
+}
     async function toggleUserActive(uid, currentActive) {
-      try {
-        await setDoc(doc(db, 'users', uid), {
-          active: !currentActive,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+  try {
+    await setDoc(doc(db, 'users', uid), {
+      active: !currentActive,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
 
-        showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
-        await fetchAllUsersForSuperAdmin();
-      } catch (error) {
-        console.error(error);
-        showStatus('Error al cambiar el estado del usuario.', true);
-      }
-    }
+    showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
+    await fetchAllUsersForSuperAdmin();
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al cambiar el estado del usuario.', true);
+  }
+}
 
     function startOwnRafflesListener() {
       if (unsubscribeOwnRaffles) unsubscribeOwnRaffles();
@@ -568,25 +707,19 @@
           });
 
         renderRaffles(docs);
-      }, (error) => {
-        console.error(error);
-        showStatus('Error al cargar tus rifas.', true);
       });
     }
 
-    async function refreshDashboard() {
-      if (isSuperAdmin()) {
-        if (unsubscribeOwnRaffles) {
-          unsubscribeOwnRaffles();
-          unsubscribeOwnRaffles = null;
-        }
-        await fetchAllRafflesForSuperAdmin();
-        await fetchAllUsersForSuperAdmin();
-      } else {
-        startOwnRafflesListener();
-        document.getElementById('usersSection').classList.add('hidden');
-      }
-    }
+   async function refreshDashboard() {
+  if (isSuperAdmin()) {
+    await fetchAllRafflesForSuperAdmin();
+    await fetchAllUsersForSuperAdmin();
+  } else {
+    startOwnRafflesListener();
+    const usersSection = document.getElementById('usersSection');
+    if (usersSection) usersSection.classList.add('hidden');
+  }
+}
 
     async function loadCurrentProfile(user) {
       const snap = await getDoc(userProfileRef(user.uid));
@@ -623,46 +756,44 @@
       const pageTitle = document.getElementById('pageTitle');
       const pageSubtitle = document.getElementById('pageSubtitle');
       const listTitle = document.getElementById('listTitle');
+      const createSection = document.getElementById('createSection');
 
-      if (isSuperAdmin()) {
-        pageTitle.textContent = 'Panel de Dirección';
-        pageSubtitle.textContent = 'Visualiza, crea y administra las rifas de todas las maestras';
-        listTitle.textContent = 'Todas las rifas';
-      } else {
-        pageTitle.textContent = 'Mis Rifas';
-        pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
-        listTitle.textContent = 'Tus rifas';
-      }
+if (isSuperAdmin()) {
+  pageTitle.textContent = 'Panel de Dirección';
+  pageSubtitle.textContent = 'Visualiza, crea y administra las rifas de todas las maestras';
+  listTitle.textContent = 'Todas las rifas';
+  createSection.classList.remove('hidden');
+} else {
+  pageTitle.textContent = 'Mis Rifas';
+  pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
+  listTitle.textContent = 'Tus rifas';
+  createSection.classList.remove('hidden');
+}
     }
 
     async function initProtectedArea(user) {
-      currentUser = user;
+  currentUser = user;
+  await loadCurrentProfile(user);
 
-      try {
-        await loadCurrentProfile(user);
-        applyDashboardMode();
+  const userBox = document.getElementById('userBox');
+  userBox.classList.remove('hidden');
+  userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
 
-        const userBox = document.getElementById('userBox');
-        userBox.classList.remove('hidden');
-        userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
+  if (isSuperAdmin()) {
+    await fetchAllUsersForSuperAdmin();
+  } else {
+    const usersSection = document.getElementById('usersSection');
+    if (usersSection) usersSection.classList.add('hidden');
+  }
 
-        await refreshDashboard();
-      } catch (error) {
-        console.error('Error iniciando dashboard:', error);
-        showStatus('Hubo un problema cargando el dashboard. Revisa la consola.', true);
-      }
-    }
+  startOwnRafflesListener();
+}
 
     document.getElementById('createRaffleBtn').addEventListener('click', createRaffle);
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {
-      try {
-        await signOut(auth);
-      } catch (error) {
-        console.error('Error cerrando sesión:', error);
-      } finally {
-        window.location.href = 'login.html';
-      }
+      await signOut(auth);
+      window.location.href = 'login.html';
     });
 
     if (!window.FIREBASE_CONFIG) {
@@ -680,7 +811,11 @@
         return;
       }
 
-      await initProtectedArea(user);
+      try {
+        await initProtectedArea(user);
+      } catch (error) {
+        console.error(error);
+      }
     });
   </script>
 </body>
