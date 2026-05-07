@@ -7,9 +7,47 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Nunito', sans-serif; }
-    .font-heading { font-family: 'Cormorant Garamond', serif; }
-  </style>
+  :root {
+    --brand-primary: #b5a7cb;
+    --brand-secondary: #f8dcc0;
+    --brand-accent: #8a7aa6;
+    --brand-light: #e8e2f0;
+    --brand-bg: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--brand-bg);
+  }
+
+  .font-heading {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .brand-bg {
+    background: var(--brand-bg);
+  }
+
+  .brand-primary-bg {
+    background-color: var(--brand-primary) !important;
+  }
+
+  .brand-primary-text {
+    color: var(--brand-primary) !important;
+  }
+
+  .brand-accent-text {
+    color: var(--brand-accent) !important;
+  }
+
+  .brand-secondary-bg {
+    background-color: var(--brand-secondary) !important;
+  }
+
+  .brand-border {
+    border-color: var(--brand-light) !important;
+  }
+</style>
   <script>
     tailwind.config = {
       theme: {
@@ -26,11 +64,17 @@
     }
   </script>
 </head>
-<body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+<body class="min-h-screen bg-white brand-bg">
   <main class="min-h-screen p-4 sm:p-6">
     <div class="max-w-6xl mx-auto">
       <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
         <div class="text-center">
+          <img
+  id="brandLogo"
+  src=""
+  alt="Logo de marca"
+  class="mx-auto h-20 w-20 rounded-2xl object-contain mb-4 hidden"
+/>
           <h1 id="pageTitle" class="font-heading text-4xl text-lavDark font-bold">Mis Rifas</h1>
           <p id="pageSubtitle" class="text-sm text-lavDark/60 mt-2">Crea, administra y comparte tus rifas</p>
           <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
@@ -788,6 +832,105 @@
         brandingSection.classList.add('hidden');
       }
     }
+    const DEFAULT_BRANDING = {
+  primary_color: '#b5a7cb',
+  secondary_color: '#f8dcc0',
+  accent_color: '#8a7aa6',
+  logo_url: ''
+};
+
+function hexToRgba(hex, alpha = 1) {
+  const cleanHex = String(hex || '').replace('#', '');
+
+  if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) {
+    return `rgba(181, 167, 203, ${alpha})`;
+  }
+
+  const r = parseInt(cleanHex.slice(0, 2), 16);
+  const g = parseInt(cleanHex.slice(2, 4), 16);
+  const b = parseInt(cleanHex.slice(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyBranding(branding = {}) {
+  const primary = branding.primary_color || DEFAULT_BRANDING.primary_color;
+  const secondary = branding.secondary_color || DEFAULT_BRANDING.secondary_color;
+  const accent = branding.accent_color || DEFAULT_BRANDING.accent_color;
+  const logoUrl = branding.logo_url || '';
+
+  const root = document.documentElement;
+
+  root.style.setProperty('--brand-primary', primary);
+  root.style.setProperty('--brand-secondary', secondary);
+  root.style.setProperty('--brand-accent', accent);
+  root.style.setProperty('--brand-light', hexToRgba(primary, 0.25));
+  root.style.setProperty(
+    '--brand-bg',
+    `linear-gradient(135deg, ${hexToRgba(secondary, 0.45)} 0%, #ffffff 40%, ${hexToRgba(primary, 0.35)} 100%)`
+  );
+
+  document.body.style.background = `linear-gradient(135deg, ${hexToRgba(secondary, 0.45)} 0%, #ffffff 40%, ${hexToRgba(primary, 0.35)} 100%)`;
+
+  document.querySelectorAll('.bg-lavender').forEach((el) => {
+    el.style.backgroundColor = primary;
+  });
+
+  document.querySelectorAll('.text-lavDark').forEach((el) => {
+    el.style.color = accent;
+  });
+
+  document.querySelectorAll('.border-lavLight').forEach((el) => {
+    el.style.borderColor = hexToRgba(primary, 0.35);
+  });
+
+  document.querySelectorAll('.bg-peachLight').forEach((el) => {
+    el.style.backgroundColor = hexToRgba(secondary, 0.45);
+  });
+
+  const brandLogo = document.getElementById('brandLogo');
+  if (brandLogo) {
+    if (logoUrl) {
+      brandLogo.src = logoUrl;
+      brandLogo.classList.remove('hidden');
+    } else {
+      brandLogo.removeAttribute('src');
+      brandLogo.classList.add('hidden');
+    }
+  }
+
+  const logoPreview = document.getElementById('logoPreview');
+  if (logoPreview && logoUrl) {
+    logoPreview.src = logoUrl;
+    logoPreview.classList.remove('hidden');
+  }
+
+  const colorPrimary = document.getElementById('colorPrimary');
+  const colorPrimaryText = document.getElementById('colorPrimaryText');
+  const colorSecondary = document.getElementById('colorSecondary');
+  const colorSecondaryText = document.getElementById('colorSecondaryText');
+  const colorAccent = document.getElementById('colorAccent');
+  const colorAccentText = document.getElementById('colorAccentText');
+
+  if (colorPrimary) colorPrimary.value = primary;
+  if (colorPrimaryText) colorPrimaryText.value = primary;
+  if (colorSecondary) colorSecondary.value = secondary;
+  if (colorSecondaryText) colorSecondaryText.value = secondary;
+  if (colorAccent) colorAccent.value = accent;
+  if (colorAccentText) colorAccentText.value = accent;
+
+  updateBrandingPreview();
+}
+
+function listenBranding() {
+  return onSnapshot(doc(db, 'school-branding', 'default'), (snap) => {
+    const branding = snap.exists() ? snap.data() : DEFAULT_BRANDING;
+    applyBranding(branding);
+  }, (error) => {
+    console.error('Error al cargar branding:', error);
+    applyBranding(DEFAULT_BRANDING);
+  });
+}
 
     // Funciones de Branding
     window.saveBranding = async function() {
@@ -813,6 +956,7 @@
         };
 
         await setDoc(doc(db, 'school-branding', 'default'), brandingData, { merge: true });
+        applyBranding(brandingData);
         showStatus('✓ Marca personalizada guardada correctamente');
       } catch (error) {
         console.error(error);
@@ -862,17 +1006,40 @@
     });
 
     document.getElementById('logoUpload')?.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const preview = document.getElementById('logoPreview');
-          preview.src = event.target.result;
-          preview.classList.remove('hidden');
-        };
-        reader.readAsDataURL(file);
-      }
-    });
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showStatus('El archivo debe ser una imagen.', true);
+    e.target.value = '';
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    showStatus('El logo no debe superar los 2MB.', true);
+    e.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = (event) => {
+    const preview = document.getElementById('logoPreview');
+    const previewLogo = document.getElementById('previewLogo');
+
+    if (preview) {
+      preview.src = event.target.result;
+      preview.classList.remove('hidden');
+    }
+
+    if (previewLogo) {
+      previewLogo.innerHTML = `<img src="${event.target.result}" alt="Logo" class="h-full w-full object-contain rounded-lg" />`;
+    }
+  };
+
+  reader.readAsDataURL(file);
+});
 
     function updateBrandingPreview() {
       const primary = document.getElementById('colorPrimary').value;
@@ -889,16 +1056,17 @@
     }
 
     async function initProtectedArea(user) {
-      currentUser = user;
-      await loadCurrentProfile(user);
-      applyDashboardMode();
+  currentUser = user;
+  await loadCurrentProfile(user);
+  applyDashboardMode();
+  listenBranding();
 
-      const userBox = document.getElementById('userBox');
-      userBox.classList.remove('hidden');
-      userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
+  const userBox = document.getElementById('userBox');
+  userBox.classList.remove('hidden');
+  userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
 
-      await refreshDashboard();
-    }
+  await refreshDashboard();
+}
 
     document.getElementById('createRaffleBtn').addEventListener('click', createRaffle);
 
