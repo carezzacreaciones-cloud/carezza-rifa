@@ -55,6 +55,12 @@
     <header class="w-full px-4 py-5 sm:px-8 sm:py-6 text-center fade-in">
       <div class="flex items-center justify-center gap-2 mb-1">
         <i data-lucide="crown" class="text-lavender" style="width:28px;height:28px;"></i>
+        <img
+  id="brandLogo"
+  src=""
+  alt="Logo de marca"
+  class="mx-auto h-20 w-20 rounded-2xl object-contain mb-4 hidden"
+/>
         <h1 id="headerTitle" class="font-heading text-3xl sm:text-4xl font-bold text-lavDark">Gran Rifa</h1>
       </div>
       <p class="text-sm text-lavDark/60 font-medium tracking-wide uppercase">Panel de Administración</p>
@@ -227,6 +233,77 @@
       getFirestore, collection, doc, setDoc, updateDoc, deleteDoc, getDoc,
       onSnapshot, serverTimestamp, getDocs, writeBatch
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+    const DEFAULT_BRANDING = {
+  primary_color: '#b5a7cb',
+  secondary_color: '#f8dcc0',
+  accent_color: '#8a7aa6',
+  logo_url: ''
+};
+
+function hexToRgba(hex, alpha = 1) {
+  const cleanHex = String(hex || '').replace('#', '');
+
+  if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) {
+    return `rgba(181, 167, 203, ${alpha})`;
+  }
+
+  const r = parseInt(cleanHex.slice(0, 2), 16);
+  const g = parseInt(cleanHex.slice(2, 4), 16);
+  const b = parseInt(cleanHex.slice(4, 6), 16);
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+function applyBranding(branding = {}) {
+  const primary = branding.primary_color || DEFAULT_BRANDING.primary_color;
+  const secondary = branding.secondary_color || DEFAULT_BRANDING.secondary_color;
+  const accent = branding.accent_color || DEFAULT_BRANDING.accent_color;
+  const logoUrl = branding.logo_url || '';
+
+  document.documentElement.style.setProperty('--brand-primary', primary);
+  document.documentElement.style.setProperty('--brand-secondary', secondary);
+  document.documentElement.style.setProperty('--brand-accent', accent);
+
+  document.body.style.background = `linear-gradient(135deg, ${hexToRgba(secondary, 0.45)} 0%, #ffffff 40%, ${hexToRgba(primary, 0.35)} 100%)`;
+
+  document.querySelectorAll('.bg-lavender').forEach((el) => {
+    el.style.backgroundColor = primary;
+  });
+
+  document.querySelectorAll('.text-lavDark').forEach((el) => {
+    el.style.color = accent;
+  });
+
+  document.querySelectorAll('.border-lavLight').forEach((el) => {
+    el.style.borderColor = hexToRgba(primary, 0.35);
+  });
+
+  document.querySelectorAll('.bg-peachLight').forEach((el) => {
+    el.style.backgroundColor = hexToRgba(secondary, 0.45);
+  });
+
+  const brandLogo = document.getElementById('brandLogo');
+
+  if (brandLogo) {
+    if (logoUrl) {
+      brandLogo.src = logoUrl;
+      brandLogo.classList.remove('hidden');
+    } else {
+      brandLogo.removeAttribute('src');
+      brandLogo.classList.add('hidden');
+    }
+  }
+}
+
+function listenBranding() {
+  onSnapshot(doc(db, 'school-branding', 'default'), (snap) => {
+    const branding = snap.exists() ? snap.data() : DEFAULT_BRANDING;
+    applyBranding(branding);
+  }, (error) => {
+    console.error('Error al cargar branding:', error);
+    applyBranding(DEFAULT_BRANDING);
+  });
+}
 
     const sectionsCollapsed = {};
     let currentFilter = 'all';
@@ -902,6 +979,7 @@ if (clientLink && currentShareId) {
       app = initializeApp(window.FIREBASE_CONFIG);
       db = getFirestore(app);
       auth = getAuth(app);
+      listenBranding();
 
       document.getElementById('logoutBtn').addEventListener('click', async () => {
         await signOut(auth);
