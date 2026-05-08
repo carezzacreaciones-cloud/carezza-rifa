@@ -933,36 +933,56 @@ function listenBranding() {
 }
 
     // Funciones de Branding
-    window.saveBranding = async function() {
+window.saveBranding = async function() {
+  try {
+    const colorPrimary = document.getElementById('colorPrimary').value;
+    const colorSecondary = document.getElementById('colorSecondary').value;
+    const colorAccent = document.getElementById('colorAccent').value;
+    const logoFile = document.getElementById('logoUpload').files[0];
+
+    let logoUrl = '';
+
+    if (logoFile) {
       try {
-        const colorPrimary = document.getElementById('colorPrimary').value;
-        const colorSecondary = document.getElementById('colorSecondary').value;
-        const colorAccent = document.getElementById('colorAccent').value;
-        const logoFile = document.getElementById('logoUpload').files[0];
+        const cleanFileName = logoFile.name
+          .toLowerCase()
+          .replace(/[^a-z0-9.]+/g, '-')
+          .replace(/^-+|-+$/g, '');
 
-        let logoUrl = '';
-        if (logoFile) {
-          const storageRef = ref(storage, `branding/logo_${Date.now()}`);
-          await uploadBytes(storageRef, logoFile);
-          logoUrl = await getDownloadURL(storageRef);
-        }
+        const storageRef = ref(
+          storage,
+          `branding/logo_${Date.now()}_${cleanFileName}`
+        );
 
-        const brandingData = {
-          primary_color: colorPrimary,
-          secondary_color: colorSecondary,
-          accent_color: colorAccent,
-          ...(logoUrl && { logo_url: logoUrl }),
-          updatedAt: serverTimestamp()
-        };
-
-        await setDoc(doc(db, 'school-branding', 'default'), brandingData, { merge: true });
-        applyBranding(brandingData);
-        showStatus('✓ Marca personalizada guardada correctamente');
-      } catch (error) {
-        console.error(error);
-        showStatus('Error al guardar la personalización', true);
+        await uploadBytes(storageRef, logoFile);
+        logoUrl = await getDownloadURL(storageRef);
+      } catch (logoError) {
+        console.error('Error al subir logo:', logoError);
       }
+    }
+
+    const brandingData = {
+      primary_color: colorPrimary,
+      secondary_color: colorSecondary,
+      accent_color: colorAccent,
+      ...(logoUrl && { logo_url: logoUrl }),
+      updatedAt: serverTimestamp()
     };
+
+    await setDoc(doc(db, 'school-branding', 'default'), brandingData, { merge: true });
+
+    applyBranding(brandingData);
+
+    if (logoFile && !logoUrl) {
+      showStatus('Colores guardados. El logo no se pudo subir.', true);
+    } else {
+      showStatus('✓ Marca personalizada guardada correctamente');
+    }
+  } catch (error) {
+    console.error(error);
+    showStatus('Error al guardar la personalización', true);
+  }
+};
 
     window.resetBranding = async function() {
       if (!window.confirm('¿Restaurar colores y logo por defecto?')) return;
