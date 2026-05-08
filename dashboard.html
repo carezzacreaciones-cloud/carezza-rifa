@@ -143,7 +143,7 @@
         </div>
       </section>
 
-      <section id="brandingSection" class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
+      <section id="brandingSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
         <h2 class="font-heading text-3xl text-lavDark font-bold mb-6">🎨 Personalización de Marca</h2>
         
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -205,7 +205,7 @@
                   id="logoUpload" 
                   type="file" 
                   accept="image/*"
-                  class="px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40 file:bg-lavender file:text-white file:border-0 file:rounded-lg file:cursor-pointer"
+                  class="px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40 file:bg-lavender file:text-white file:border-0 file:rounded-lg file:px-3 file:py-1 file:cursor-pointer"
                 />
                 <div id="logoStatus" class="text-xs text-lavDark/60"></div>
               </div>
@@ -292,7 +292,7 @@
           <!-- Vista Previa -->
           <div class="rounded-2xl bg-lavLight/10 p-6 flex flex-col">
             <h3 class="text-sm font-semibold text-lavDark/70 uppercase mb-4">Vista Previa</h3>
-            <div id="brandingPreview" class="flex-1 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-4" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+            <div id="brandingPreview" class="flex-1 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-4" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%)">
               <div id="previewLogo" class="h-16 w-16 rounded-lg border-2 border-dashed border-lavLight/40 flex items-center justify-center text-xs text-lavDark/30">Logo</div>
               <div>
                 <p id="previewSchoolName" class="font-heading text-xl font-bold text-lavDark">Mi Colegio</p>
@@ -326,7 +326,9 @@
       getDoc,
       getDocs,
       deleteDoc,
-      writeBatch
+      writeBatch,
+      query,
+      where
     } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
     import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-storage.js';
 
@@ -533,6 +535,65 @@
       }
     }
 
+    async function loadAllUsers() {
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+        allUsersCache = usersSnap.docs.map(doc => ({
+          id: doc.id,
+          email: doc.data().email || '',
+          display_name: doc.data().display_name || '',
+          role: doc.data().role || 'user'
+        }));
+
+        // Actualizar dropdown de superadmin
+        const select = document.getElementById('raffleOwnerSelect');
+        if (select) {
+          const regularUsers = allUsersCache.filter(u => u.role !== 'superadmin');
+          select.innerHTML = '<option value="">Seleccionar usuario...</option>';
+          regularUsers.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.display_name || user.email} (${user.email})`;
+            select.appendChild(option);
+          });
+        }
+
+        // Actualizar sección de usuarios
+        renderUsersList();
+      } catch (error) {
+        console.error('Error cargando usuarios:', error);
+      }
+    }
+
+    function renderUsersList() {
+      const usersList = document.getElementById('usersList');
+      const usersCountBox = document.getElementById('usersCountBox');
+
+      if (allUsersCache.length === 0) {
+        usersList.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
+        usersCountBox.textContent = '0 usuarios';
+        return;
+      }
+
+      usersCountBox.textContent = `${allUsersCache.length} usuarios`;
+
+      usersList.innerHTML = allUsersCache.map(user => `
+        <div class="bg-lavLight/10 rounded-2xl p-4 border border-lavLight/30">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-semibold text-lavDark">${user.display_name || user.email}</p>
+              <p class="text-xs text-lavDark/60">${user.email}</p>
+              <p class="text-xs mt-1">
+                <span class="inline-block px-2 py-1 rounded-full ${user.role === 'superadmin' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}">
+                  ${user.role}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
     function loadBrandingToForm() {
       onSnapshot(brandingRef(), (snap) => {
         const data = snap.data() || {};
@@ -691,6 +752,13 @@
         // Mostrar sección de branding
         document.getElementById('brandingSection').classList.remove('hidden');
         loadBrandingToForm();
+
+        // Si es superadmin, mostrar sección de usuarios
+        if (isSuperAdmin()) {
+          document.getElementById('usersSection').classList.remove('hidden');
+          document.getElementById('ownerSelectContainer').classList.remove('hidden');
+          await loadAllUsers();
+        }
       });
     }
 
