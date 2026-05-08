@@ -64,6 +64,12 @@
         <h1 id="headerTitle" class="font-heading text-3xl sm:text-4xl font-bold text-lavDark">Gran Rifa</h1>
       </div>
       <p class="text-sm text-lavDark/60 font-medium tracking-wide uppercase">Panel de Administración</p>
+      
+      <!-- Información del establecimiento -->
+      <div id="schoolInfoAdmin" class="mt-2 inline-block text-xs text-lavDark/60 hidden">
+        <p id="schoolNameAdmin" class="font-semibold"></p>
+        <div id="schoolContactAdmin" class="flex flex-wrap gap-3 justify-center mt-1"></div>
+      </div>
 
       <div id="userBox" class="mt-3 inline-flex items-center gap-2 rounded-full bg-white border border-lavLight px-4 py-2 text-sm text-lavDark/80 hidden"></div>
 
@@ -121,12 +127,12 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button onclick="saveConfig()" class="w-full h-14 rounded-2xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-all duration-200 flex items-center justify-center gap-3 shadow-sm hover:shadow-md">
+              <button onclick="saveConfig()" class="w-full h-14 rounded-2xl bg-lavender text-white font-semibold text-sm hover:bg-lavDark transition-all duration-200 flex items-center justify-center gap-2">
                 <i data-lucide="save" style="width:20px;height:20px;stroke-width:2.2;"></i>
                 <span>Guardar cambios</span>
               </button>
 
-              <button onclick="resetRaffle()" class="w-full h-14 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold text-sm hover:bg-red-50 hover:border-red-300 transition-all duration-200 flex items-center justify-center gap-3 shadow-sm">
+              <button onclick="resetRaffle()" class="w-full h-14 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold text-sm hover:bg-red-50 hover:border-red-300 transition-all duration-200 flex items-center justify-center gap-2">
                 <i data-lucide="rotate-ccw" style="width:20px;height:20px;stroke-width:2.2;"></i>
                 <span>Resetear rifa</span>
               </button>
@@ -291,6 +297,34 @@ function applyBranding(branding = {}) {
     } else {
       brandLogo.removeAttribute('src');
       brandLogo.classList.add('hidden');
+    }
+  }
+
+  // Mostrar datos del establecimiento
+  const schoolInfo = document.getElementById('schoolInfoAdmin');
+  if (branding.school_name) {
+    schoolInfo.classList.remove('hidden');
+    document.getElementById('schoolNameAdmin').textContent = branding.school_name;
+    
+    const contactDisplay = document.getElementById('schoolContactAdmin');
+    contactDisplay.innerHTML = '';
+    
+    if (branding.school_website) {
+      const websiteEl = document.createElement('span');
+      websiteEl.innerHTML = `🌐 <a href="${branding.school_website}" target="_blank" class="underline">${branding.school_website}</a>`;
+      contactDisplay.appendChild(websiteEl);
+    }
+    
+    if (branding.school_email) {
+      const emailEl = document.createElement('span');
+      emailEl.innerHTML = `📧 <a href="mailto:${branding.school_email}" class="underline">${branding.school_email}</a>`;
+      contactDisplay.appendChild(emailEl);
+    }
+    
+    if (branding.school_phone) {
+      const phoneEl = document.createElement('span');
+      phoneEl.innerHTML = `📱 <a href="tel:${branding.school_phone}" class="underline">${branding.school_phone}</a>`;
+      contactDisplay.appendChild(phoneEl);
     }
   }
 }
@@ -769,7 +803,7 @@ function listenBranding() {
           </div>
           <div class="space-y-2">
             <button id="paidBtn" class="w-full py-2.5 rounded-xl bg-violet-500 text-white font-semibold text-sm hover:bg-violet-600 transition-colors">✓ Marcar Pagado</button>
-            <button id="msgBtn" class="w-full py-2.5 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors flex items-center justify-center gap-2"><span>Enviar Mensaje</span></button>
+            <button id="msgBtn" class="w-full py-2.5 rounded-xl bg-green-500 text-white font-semibold text-sm hover:bg-green-600 transition-colors flex items-center justify-center gap-2"><span>Enviar mensaje</span></button>
             <button id="freeBtn" class="w-full py-2 rounded-xl bg-white text-red-400 font-semibold text-sm border border-red-200 hover:bg-red-50 transition-colors">Liberar Número</button>
             <button id="closeBtn" class="w-full py-2 rounded-xl bg-gray-100 text-gray-500 font-semibold text-sm hover:bg-gray-200 transition-colors">Cerrar</button>
           </div>`;
