@@ -149,6 +149,8 @@
         whatsapp: '56933024232',
         reserve_message: 'Hola, quiero reservar un número de la rifa y realizar el pago.',
         payment_message: 'Para confirmar tu número, realiza el pago y envía el comprobante.',
+        number_start: '1',
+        number_end: '100',
         total_numbers: '100'
       },
       tickets: new Map(),
@@ -176,7 +178,35 @@
     }
 
     function cfg(key) { return state.config[key]; }
-    function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
+    function parseLimitedNumber(value, fallback = 0) {
+      const parsed = parseInt(value, 10);
+      return Number.isInteger(parsed) ? Math.max(0, Math.min(9999, parsed)) : fallback;
+    }
+
+    function numberStart() {
+      return parseLimitedNumber(cfg('number_start'), 1);
+    }
+
+    function numberEnd() {
+      const start = numberStart();
+      const explicitEnd = parseInt(cfg('number_end'), 10);
+
+      if (Number.isInteger(explicitEnd)) {
+        return Math.max(start, Math.min(9999, explicitEnd));
+      }
+
+      return Math.max(start, start + Math.max(1, parseInt(cfg('total_numbers'), 10) || 100) - 1);
+    }
+
+    function totalNums() { return numberEnd() - numberStart() + 1; }
+    function raffleNumbers() {
+      const numbers = [];
+      for (let i = numberStart(); i <= numberEnd(); i++) numbers.push(i);
+      return numbers;
+    }
+    function formatTicketNumber(num) {
+      return String(num).padStart(Math.max(2, String(numberEnd()).length), '0');
+    }
     function getPrice() { return parseInt(cfg('price')) || 0; }
     function getRecord(num) { return state.tickets.get(String(num)) || null; }
     function getStatus(num) { return getRecord(num)?.status || 'available'; }
@@ -284,9 +314,9 @@
       document.getElementById('infoPrice').textContent = '$' + getPrice().toLocaleString('es-CL');
 
       let available = 0;
-      for (let i = 1; i <= totalNums(); i++) {
+      raffleNumbers().forEach((i) => {
         if (getStatus(i) === 'available') available++;
-      }
+      });
       document.getElementById('infoAvailable').textContent = available;
 
       cleanUnavailableSelections();
@@ -306,10 +336,10 @@
       const grid = document.getElementById('ticketGrid');
       grid.innerHTML = '';
 
-      for (let i = 1; i <= totalNums(); i++) {
+      raffleNumbers().forEach((i) => {
         const status = getStatus(i);
         const visible = currentFilter === 'all' || currentFilter === status || (currentFilter === 'available' && status === 'available');
-        if (!visible) continue;
+        if (!visible) return;
 
         let bg, text, border, cursor;
 
@@ -345,14 +375,14 @@
           cursor:${cursor};
           position:relative;
         `;
-        el.textContent = String(i).padStart(2, '0');
+        el.textContent = formatTicketNumber(i);
 
         if (status === 'available') {
           el.addEventListener('click', () => toggleNumberSelection(i));
         }
 
         grid.appendChild(el);
-      }
+      });
     }
 
     function toggleNumberSelection(num) {
@@ -410,7 +440,7 @@
         return;
       }
 
-      const formattedNumbers = numbers.map(n => `#${String(n).padStart(2, '0')}`).join(', ');
+      const formattedNumbers = numbers.map(n => `#${formatTicketNumber(n)}`).join(', ');
       const total = numbers.length * getPrice();
 
       document.getElementById('modalTitle').textContent = 'Reservar números';
@@ -477,7 +507,7 @@
         if (fresh.exists()) {
           const data = fresh.data();
           if (data.status === 'reserved' || data.status === 'paid') {
-            showToast(`El número #${String(num).padStart(2, '0')} ya no está disponible`, '#e57373');
+            showToast(`El número #${formatTicketNumber(num)} ya no está disponible`, '#e57373');
             selectedNumbers.delete(num);
             renderAll();
             closeModal();
@@ -499,7 +529,7 @@
       }
 
       const wa = String(cfg('whatsapp')).replace(/\D/g, '');
-      const formattedNumbers = numbers.map(n => `#${String(n).padStart(2, '0')}`).join(', ');
+      const formattedNumbers = numbers.map(n => `#${formatTicketNumber(n)}`).join(', ');
       const total = numbers.length * getPrice();
 
       const fullMsg = `${cfg('reserve_message')}
