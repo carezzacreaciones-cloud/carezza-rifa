@@ -93,7 +93,7 @@
         </div>
 
         <div id="createSection" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-6">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <input
               id="raffleNameInput"
               class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
@@ -104,6 +104,24 @@
               id="raffleSlugInput"
               class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
               placeholder="Slug opcional: rifa-dia-madre"
+            />
+
+            <input
+              id="raffleStartInput"
+              type="number"
+              min="0"
+              value="1"
+              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+              placeholder="Desde: 0"
+            />
+
+            <input
+              id="raffleEndInput"
+              type="number"
+              min="0"
+              value="100"
+              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
+              placeholder="Hasta: 100"
             />
           </div>
 
@@ -374,6 +392,8 @@
       whatsapp: '56933024232',
       reserve_message: 'Hola, quiero reservar un número de la rifa y realizar el pago.',
       payment_message: 'Para confirmar tu número, realiza el pago y envía el comprobante. Transferencia a: [TUS DATOS AQUÍ]',
+      number_start: '1',
+      number_end: '100',
       total_numbers: '100'
     };
 
@@ -742,7 +762,26 @@
 
     window.resetBranding = resetBranding;
 
-    async function ensureRootRaffleDoc(raffleId, raffleName, shareId, ownerUid = null) {
+    function normalizeRaffleRange(startValue, endValue) {
+      const start = Math.max(0, Math.min(9999, parseInt(startValue, 10)));
+      const end = Math.max(0, Math.min(9999, parseInt(endValue, 10)));
+
+      if (!Number.isInteger(start) || !Number.isInteger(end)) {
+        return null;
+      }
+
+      if (end < start) {
+        return null;
+      }
+
+      return {
+        start,
+        end,
+        count: end - start + 1
+      };
+    }
+
+    async function ensureRootRaffleDoc(raffleId, raffleName, shareId, range, ownerUid = null) {
       const uid = ownerUid || currentUser.uid;
 
       await setDoc(raffleDocRef(raffleId, uid), {
@@ -751,7 +790,9 @@
         public_share_id: shareId,
         prize: defaultConfig.prize,
         price: defaultConfig.price,
-        total_numbers: defaultConfig.total_numbers,
+        number_start: String(range.start),
+        number_end: String(range.end),
+        total_numbers: String(range.count),
         created_by_uid: currentUser.uid,
         created_by_email: currentUser.email || '',
         created_by_name: currentProfile?.display_name || currentUser.email || '',
@@ -775,7 +816,7 @@
       }, { merge: true });
     }
 
-    async function ensureRaffleConfig(raffleId, raffleName, ownerUid = null) {
+    async function ensureRaffleConfig(raffleId, raffleName, range, ownerUid = null) {
       const uid = ownerUid || currentUser.uid;
       const snap = await getDoc(raffleConfigRef(raffleId, uid));
 
@@ -783,6 +824,9 @@
         await setDoc(raffleConfigRef(raffleId, uid), {
           ...defaultConfig,
           raffle_name: raffleName || defaultConfig.raffle_name,
+          number_start: String(range.start),
+          number_end: String(range.end),
+          total_numbers: String(range.count),
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         }, { merge: true });
@@ -794,10 +838,13 @@
 
       const nameInput = document.getElementById('raffleNameInput');
       const slugInput = document.getElementById('raffleSlugInput');
+      const startInput = document.getElementById('raffleStartInput');
+      const endInput = document.getElementById('raffleEndInput');
       const ownerSelect = document.getElementById('raffleOwnerSelect');
 
       const raffleName = nameInput.value.trim();
       let raffleId = slugify(slugInput.value.trim());
+      const range = normalizeRaffleRange(startInput.value, endInput.value);
 
       if (!raffleName) {
         showStatus('Debes escribir un nombre para la rifa.', true);
@@ -808,6 +855,11 @@
 
       if (!raffleId) {
         showStatus('No se pudo generar un identificador para la rifa.', true);
+        return;
+      }
+
+      if (!range) {
+        showStatus('Debes definir un rango válido. El número final debe ser mayor o igual al inicial.', true);
         return;
       }
 
@@ -825,12 +877,14 @@
       try {
         const shareId = generateShareId();
 
-        await ensureRootRaffleDoc(raffleId, raffleName, shareId, targetUserId);
+        await ensureRootRaffleDoc(raffleId, raffleName, shareId, range, targetUserId);
         await ensurePublicRaffleDoc(shareId, raffleId, raffleName, targetUserId);
-        await ensureRaffleConfig(raffleId, raffleName, targetUserId);
+        await ensureRaffleConfig(raffleId, raffleName, range, targetUserId);
 
         nameInput.value = '';
         slugInput.value = '';
+        startInput.value = '1';
+        endInput.value = '100';
         if (ownerSelect) ownerSelect.value = '';
 
         showStatus('Rifa creada correctamente.');
@@ -900,7 +954,9 @@
         const displayName = data.raffle_name || raffleId;
         const prize = data.prize || 'Sin premio';
         const price = data.price || '0';
-        const totalNumbers = data.total_numbers || '0';
+        const numberStart = data.number_start ?? '1';
+        const numberEnd = data.number_end ?? String(parseInt(data.total_numbers || '100', 10));
+        const totalNumbers = data.total_numbers || String((parseInt(numberEnd, 10) - parseInt(numberStart, 10)) + 1);
         const shareId = data.public_share_id || '';
 
         const adminUrl = isSuperAdmin()
@@ -932,7 +988,7 @@
 
               ${ownerBlock}
 
-              <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-4 gap-2">
                 <div class="rounded-xl bg-peachLight px-3 py-2">
                   <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
                   <p class="text-sm font-semibold text-lavDark">${prize}</p>
@@ -946,6 +1002,11 @@
                 <div class="rounded-xl bg-peachLight px-3 py-2">
                   <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Cantidad</p>
                   <p class="text-sm font-semibold text-lavDark">${totalNumbers}</p>
+                </div>
+
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Rango</p>
+                  <p class="text-sm font-semibold text-lavDark">#${numberStart} a #${numberEnd}</p>
                 </div>
               </div>
             </div>
