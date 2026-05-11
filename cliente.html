@@ -177,6 +177,16 @@
       return params.get('share');
     }
 
+    function getOwnerUidFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('owner');
+    }
+
+    function getRaffleIdFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('raffle');
+    }
+
     function cfg(key) { return state.config[key]; }
     function parseLimitedNumber(value, fallback = 0) {
       const parsed = parseInt(value, 10);
@@ -556,13 +566,15 @@ Teléfono: ${phone}`;
       ensureFirebaseConfig();
 
       currentShareId = getShareIdFromUrl();
+      ownerUid = getOwnerUidFromUrl();
+      currentRaffleId = getRaffleIdFromUrl();
 
-      if (!currentShareId) {
+      if (!currentShareId && (!ownerUid || !currentRaffleId)) {
         document.body.innerHTML = `
           <main class="min-h-screen flex items-center justify-center p-4">
             <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
               <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace incompleto</h1>
-              <p class="text-lavDark/70">Falta el identificador público de la rifa en la URL.</p>
+              <p class="text-lavDark/70">Faltan datos para cargar la rifa.</p>
             </div>
           </main>
         `;
@@ -574,9 +586,21 @@ Teléfono: ${phone}`;
 
       listenBranding();
 
-      const publicSnap = await getDoc(publicRaffleRef(currentShareId));
+      if (currentShareId) {
+        try {
+          const publicSnap = await getDoc(publicRaffleRef(currentShareId));
 
-      if (!publicSnap.exists()) {
+          if (publicSnap.exists()) {
+            const publicData = publicSnap.data();
+            ownerUid = publicData.owner_uid || ownerUid;
+            currentRaffleId = publicData.raffle_id || currentRaffleId;
+          }
+        } catch (error) {
+          console.warn('No se pudo leer el índice público. Se intentará cargar con owner y raffle.', error);
+        }
+      }
+
+      if (!ownerUid || !currentRaffleId) {
         document.body.innerHTML = `
           <main class="min-h-screen flex items-center justify-center p-4">
             <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
@@ -587,10 +611,6 @@ Teléfono: ${phone}`;
         `;
         return;
       }
-
-      const publicData = publicSnap.data();
-      ownerUid = publicData.owner_uid;
-      currentRaffleId = publicData.raffle_id;
 
       if (!ownerUid || !currentRaffleId) {
         document.body.innerHTML = `
