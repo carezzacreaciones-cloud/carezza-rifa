@@ -354,6 +354,7 @@ function listenBranding() {
     let app, db, auth, currentUser;
     const DEFAULT_RAFFLE_ID = 'gran-rifa';
     let currentRaffleId = DEFAULT_RAFFLE_ID;
+    let currentOwnerUid = null;
     let currentShareId = null;
     let adminSelectionMode = false;
     let selectedAdminNumbers = new Set();
@@ -383,6 +384,11 @@ function listenBranding() {
     function getRaffleIdFromUrl() {
       const params = new URLSearchParams(window.location.search);
       return params.get('raffle') || DEFAULT_RAFFLE_ID;
+    }
+
+    function getOwnerUidFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('owner');
     }
 
     function cfg(key) { return state.config[key]; }
@@ -420,15 +426,23 @@ function listenBranding() {
     function getStatus(num) { return getRecord(num)?.status || 'available'; }
 
     function configRef() {
-      return doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId, 'meta', 'config');
+      return doc(db, 'users', currentOwnerUid, 'raffles', currentRaffleId, 'meta', 'config');
     }
 
     function ticketsColRef() {
-      return collection(db, 'users', currentUser.uid, 'raffles', currentRaffleId, 'tickets');
+      return collection(db, 'users', currentOwnerUid, 'raffles', currentRaffleId, 'tickets');
     }
 
     function ticketRef(num) {
-      return doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId, 'tickets', String(num));
+      return doc(db, 'users', currentOwnerUid, 'raffles', currentRaffleId, 'tickets', String(num));
+    }
+
+    function raffleRootRef() {
+      return doc(db, 'users', currentOwnerUid, 'raffles', currentRaffleId);
+    }
+
+    function publicRaffleRef(shareId) {
+      return doc(db, 'public_raffles', shareId);
     }
 
     function showToast(msg, color = '#b5a7cb') {
@@ -503,16 +517,37 @@ function listenBranding() {
       };
 
       await setDoc(configRef(), nextConfig, { merge: true });
-     await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
-  raffle_id: currentRaffleId,
-  raffle_name: nextConfig.raffle_name,
-  prize: nextConfig.prize,
-  price: nextConfig.price,
-  number_start: nextConfig.number_start,
-  number_end: nextConfig.number_end,
-  total_numbers: nextConfig.total_numbers,
-  updatedAt: serverTimestamp()
-}, { merge: true });
+
+      const rootUpdate = {
+        raffle_id: currentRaffleId,
+        raffle_name: nextConfig.raffle_name,
+        prize: nextConfig.prize,
+        price: nextConfig.price,
+        number_start: nextConfig.number_start,
+        number_end: nextConfig.number_end,
+        total_numbers: nextConfig.total_numbers,
+        updatedAt: serverTimestamp()
+      };
+
+      await setDoc(raffleRootRef(), rootUpdate, { merge: true });
+
+      if (currentShareId) {
+        try {
+          await setDoc(publicRaffleRef(currentShareId), {
+            owner_uid: currentOwnerUid,
+            raffle_id: currentRaffleId,
+            raffle_name: nextConfig.raffle_name,
+            prize: nextConfig.prize,
+            price: nextConfig.price,
+            number_start: nextConfig.number_start,
+            number_end: nextConfig.number_end,
+            total_numbers: nextConfig.total_numbers,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (error) {
+          console.warn('No se pudo actualizar el índice público de la rifa.', error);
+        }
+      }
 
       showToast('Configuración guardada ✓');
     }
@@ -960,16 +995,13 @@ function listenBranding() {
     window.sendPaymentMessage = sendPaymentMessage;
 
     function copyClientLink() {
-  if (!currentShareId) {
-    showToast('Esta rifa no tiene enlace público todavía', '#e57373');
-    return;
-  }
-
   const url = new URL(window.location.href);
   url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
   url.search = '';
-  url.searchParams.set('share', currentShareId);
-  url.searchParams.set('owner', currentUser.uid);
+  if (currentShareId) {
+    url.searchParams.set('share', currentShareId);
+  }
+  url.searchParams.set('owner', currentOwnerUid);
   url.searchParams.set('raffle', currentRaffleId);
 
   navigator.clipboard.writeText(url.toString()).then(() => {
@@ -987,7 +1019,7 @@ function listenBranding() {
       updatedAt: serverTimestamp()
     }, { merge: true });
 
-   await setDoc(doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId), {
+   await setDoc(raffleRootRef(), {
   raffle_id: currentRaffleId,
   raffle_name: state.config.raffle_name,
   prize: state.config.prize,
@@ -1001,12 +1033,11 @@ function listenBranding() {
     return;
   }
 
-  const raffleRootRef = doc(db, 'users', currentUser.uid, 'raffles', currentRaffleId);
-  const raffleRootSnap = await getDoc(raffleRootRef);
+  const raffleRootSnap = await getDoc(raffleRootRef());
 
   if (!raffleRootSnap.exists()) {
     const configData = configSnap.data();
-   await setDoc(raffleRootRef, {
+   await setDoc(raffleRootRef(), {
   raffle_id: currentRaffleId,
   raffle_name: configData?.raffle_name || state.config.raffle_name,
   prize: configData?.prize || state.config.prize,
@@ -1021,6 +1052,7 @@ function listenBranding() {
     async function startApp(user) {
       currentUser = user;
       currentRaffleId = getRaffleIdFromUrl();
+      currentOwnerUid = getOwnerUidFromUrl() || user.uid;
 
       const configSnap = await getDoc(configRef());
 if (configSnap.exists()) {
@@ -1031,7 +1063,7 @@ if (configSnap.exists()) {
   };
 }
 
-const raffleRootSnap = await getDoc(doc(db, 'users', user.uid, 'raffles', currentRaffleId));
+const raffleRootSnap = await getDoc(raffleRootRef());
 if (raffleRootSnap.exists()) {
   const raffleRootData = raffleRootSnap.data();
   currentShareId = raffleRootData?.public_share_id || null;
@@ -1039,12 +1071,12 @@ if (raffleRootSnap.exists()) {
 
 const clientLink = document.getElementById('clientViewLink');
 if (clientLink && currentShareId) {
-  clientLink.href = `cliente.html?share=${encodeURIComponent(currentShareId)}`;
+  clientLink.href = `cliente.html?share=${encodeURIComponent(currentShareId)}&owner=${encodeURIComponent(currentOwnerUid)}&raffle=${encodeURIComponent(currentRaffleId)}`;
 }
 
       const userBox = document.getElementById('userBox');
       userBox.classList.remove('hidden');
-      userBox.textContent = `Sesión iniciada: ${user.email} · Rifa: ${currentRaffleId}`;
+      userBox.textContent = `Sesión iniciada: ${user.email} · Rifa: ${currentRaffleId}${currentOwnerUid !== user.uid ? ' · Editando rifa asignada' : ''}`;
 
       await ensureInitialConfig();
 
