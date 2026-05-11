@@ -113,6 +113,16 @@
                 <input id="cfgTotal" type="number" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
               </div>
             </div>
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Desde</label>
+                <input id="cfgNumberStart" type="number" min="0" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+              </div>
+              <div class="flex-1">
+                <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">Hasta</label>
+                <input id="cfgNumberEnd" type="number" min="0" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+              </div>
+            </div>
             <div>
               <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide">WhatsApp</label>
               <input id="cfgWA" class="w-full mt-1 px-3 py-2 rounded-xl border border-lavLight bg-white/60 text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40" />
@@ -356,6 +366,8 @@ function listenBranding() {
         whatsapp: '56933024232',
         reserve_message: 'Hola, quiero reservar un número de la rifa y realizar el pago.',
         payment_message: 'Para confirmar tu número, realiza el pago y envía el comprobante. Transferencia a: [TUS DATOS AQUÍ]',
+        number_start: '1',
+        number_end: '100',
         total_numbers: '100'
       },
       tickets: new Map()
@@ -374,7 +386,35 @@ function listenBranding() {
     }
 
     function cfg(key) { return state.config[key]; }
-    function totalNums() { return Math.max(1, Math.min(999, parseInt(cfg('total_numbers')) || 100)); }
+    function parseLimitedNumber(value, fallback = 0) {
+      const parsed = parseInt(value, 10);
+      return Number.isInteger(parsed) ? Math.max(0, Math.min(9999, parsed)) : fallback;
+    }
+
+    function numberStart() {
+      return parseLimitedNumber(cfg('number_start'), 1);
+    }
+
+    function numberEnd() {
+      const start = numberStart();
+      const explicitEnd = parseInt(cfg('number_end'), 10);
+
+      if (Number.isInteger(explicitEnd)) {
+        return Math.max(start, Math.min(9999, explicitEnd));
+      }
+
+      return Math.max(start, start + Math.max(1, parseInt(cfg('total_numbers'), 10) || 100) - 1);
+    }
+
+    function totalNums() { return numberEnd() - numberStart() + 1; }
+    function raffleNumbers() {
+      const numbers = [];
+      for (let i = numberStart(); i <= numberEnd(); i++) numbers.push(i);
+      return numbers;
+    }
+    function formatTicketNumber(num) {
+      return String(num).padStart(Math.max(2, String(numberEnd()).length), '0');
+    }
     function getPrice() { return parseInt(cfg('price')) || 0; }
     function getRecord(num) { return state.tickets.get(String(num)) || null; }
     function getStatus(num) { return getRecord(num)?.status || 'available'; }
@@ -420,25 +460,42 @@ function listenBranding() {
       document.getElementById('cfgPrize').value = cfg('prize');
       document.getElementById('cfgPrice').value = cfg('price');
       document.getElementById('cfgTotal').value = cfg('total_numbers');
+      document.getElementById('cfgNumberStart').value = numberStart();
+      document.getElementById('cfgNumberEnd').value = numberEnd();
       document.getElementById('cfgWA').value = cfg('whatsapp');
       document.getElementById('cfgMsgRes').value = cfg('reserve_message');
       document.getElementById('cfgMsgPay').value = cfg('payment_message');
     }
 
     async function saveConfig() {
-      const newTotal = Math.max(1, Math.min(999, parseInt(document.getElementById('cfgTotal').value) || 100));
-      const maxUsed = [...state.tickets.values()].reduce((max, r) => (r.status === 'reserved' || r.status === 'paid') ? Math.max(max, r.number) : max, 0);
+      const start = parseLimitedNumber(document.getElementById('cfgNumberStart').value, numberStart());
+      const end = parseLimitedNumber(document.getElementById('cfgNumberEnd').value, numberEnd());
 
-      if (newTotal < maxUsed) {
-        showToast(`No puedes reducir a ${newTotal}. Hay números hasta #${maxUsed} ocupados.`, '#e57373');
+      if (end < start) {
+        showToast('El número final debe ser mayor o igual al inicial.', '#e57373');
         return;
       }
+
+      const occupiedNumbers = [...state.tickets.values()]
+        .filter((r) => r.status === 'reserved' || r.status === 'paid')
+        .map((r) => r.number);
+
+      const outsideRange = occupiedNumbers.find((num) => num < start || num > end);
+
+      if (outsideRange != null) {
+        showToast(`No puedes dejar fuera el número #${outsideRange}, ya está ocupado.`, '#e57373');
+        return;
+      }
+
+      const newTotal = end - start + 1;
 
       const nextConfig = {
         raffle_name: document.getElementById('cfgName').value || state.config.raffle_name,
         prize: document.getElementById('cfgPrize').value || state.config.prize,
         price: document.getElementById('cfgPrice').value || state.config.price,
         total_numbers: String(newTotal),
+        number_start: String(start),
+        number_end: String(end),
         whatsapp: document.getElementById('cfgWA').value || state.config.whatsapp,
         reserve_message: document.getElementById('cfgMsgRes').value || state.config.reserve_message,
         payment_message: document.getElementById('cfgMsgPay').value || state.config.payment_message,
@@ -451,6 +508,8 @@ function listenBranding() {
   raffle_name: nextConfig.raffle_name,
   prize: nextConfig.prize,
   price: nextConfig.price,
+  number_start: nextConfig.number_start,
+  number_end: nextConfig.number_end,
   total_numbers: nextConfig.total_numbers,
   updatedAt: serverTimestamp()
 }, { merge: true });
@@ -482,16 +541,15 @@ function listenBranding() {
 
     function renderAll() {
       document.getElementById('headerTitle').textContent = cfg('raffle_name');
-      const total = totalNums();
       const price = getPrice();
 
       let avail = 0, reserved = 0, paid = 0;
-      for (let i = 1; i <= total; i++) {
+      raffleNumbers().forEach((i) => {
         const s = getStatus(i);
         if (s === 'reserved') reserved++;
         else if (s === 'paid') paid++;
         else avail++;
-      }
+      });
 
       document.getElementById('countAvail').textContent = avail;
       document.getElementById('countReserved').textContent = reserved;
@@ -500,19 +558,19 @@ function listenBranding() {
       document.getElementById('totalRevenue').textContent = '$' + (paid * price).toLocaleString('es-CL');
 
       loadConfigToFields();
-      renderGrid(total);
+      renderGrid();
       renderReservedList();
       lucide.createIcons();
     }
 
-    function renderGrid(total) {
+    function renderGrid() {
       const grid = document.getElementById('ticketGrid');
       grid.innerHTML = '';
 
-      for (let i = 1; i <= total; i++) {
+      raffleNumbers().forEach((i) => {
         const s = getStatus(i);
         const visible = currentFilter === 'all' || currentFilter === s || (currentFilter === 'available' && s === 'available');
-        if (!visible) continue;
+        if (!visible) return;
 
         const isSelected = selectedAdminNumbers.has(i);
         const el = document.createElement('div');
@@ -535,7 +593,7 @@ function listenBranding() {
         el.style.cssText = `background:${bg};color:${text};border:1.5px solid ${border};border-radius:12px;padding:6px 2px;text-align:center;font-weight:700;font-size:14px;cursor:pointer;position:relative;`;
         const r = getRecord(i);
         el.title = r?.name || '';
-        el.textContent = String(i).padStart(2, '0');
+        el.textContent = formatTicketNumber(i);
 
         if (isSelected) {
           const badge = document.createElement('div');
@@ -551,7 +609,7 @@ function listenBranding() {
         }
 
         grid.appendChild(el);
-      }
+      });
 
       updateAdminBulkBar();
       updateMultiSelectButton();
@@ -572,7 +630,7 @@ function listenBranding() {
       } else {
         selectedAdminNumbers.add(num);
       }
-      renderGrid(totalNums());
+      renderGrid();
     }
 
     function updateMultiSelectButton() {
@@ -654,7 +712,7 @@ function listenBranding() {
         return;
       }
 
-      const formattedNumbers = nums.map(n => `#${String(n).padStart(2, '0')}`).join(', ');
+      const formattedNumbers = nums.map(n => `#${formatTicketNumber(n)}`).join(', ');
 
       document.getElementById('modalTitle').textContent = 'Reservar números manualmente';
       document.getElementById('modalContent').innerHTML = `
@@ -739,7 +797,7 @@ function listenBranding() {
         el.className = 'bg-amber-50/80 rounded-xl p-3 border border-amber-200/60';
         el.innerHTML = `
           <div class="flex items-center justify-between mb-2">
-            <span class="bg-amber-200 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">#${String(r.number).padStart(2,'0')}</span>
+            <span class="bg-amber-200 text-amber-800 text-xs font-bold px-2 py-0.5 rounded-full">#${formatTicketNumber(r.number)}</span>
             <span class="text-[10px] text-amber-600/60">${formatDate(r.reservedAt)}</span>
           </div>
           <p class="text-sm font-semibold text-lavDark truncate">${r.name || 'Sin nombre'}</p>
@@ -776,7 +834,7 @@ function listenBranding() {
       const s = getStatus(num);
       const r = getRecord(num);
 
-      title.textContent = `Número #${String(num).padStart(2, '0')}`;
+      title.textContent = `Número #${formatTicketNumber(num)}`;
 
       if (s === 'available') {
         content.innerHTML = `
@@ -932,6 +990,8 @@ function listenBranding() {
   raffle_name: state.config.raffle_name,
   prize: state.config.prize,
   price: state.config.price,
+  number_start: state.config.number_start,
+  number_end: state.config.number_end,
   total_numbers: state.config.total_numbers,
   updatedAt: serverTimestamp()
 }, { merge: true });
@@ -949,6 +1009,8 @@ function listenBranding() {
   raffle_name: configData?.raffle_name || state.config.raffle_name,
   prize: configData?.prize || state.config.prize,
   price: configData?.price || state.config.price,
+  number_start: configData?.number_start || state.config.number_start,
+  number_end: configData?.number_end || state.config.number_end,
   total_numbers: configData?.total_numbers || state.config.total_numbers,
   updatedAt: serverTimestamp()
 }, { merge: true });
