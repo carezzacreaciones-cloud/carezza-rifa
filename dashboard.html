@@ -863,15 +863,10 @@
         return;
       }
 
-      let targetUserId = null;
+      let targetUserId = currentUser.uid;
 
       if (isSuperAdmin()) {
-        targetUserId = ownerSelect.value;
-
-        if (!targetUserId) {
-          showStatus('Debes seleccionar un usuario para crear la rifa.', true);
-          return;
-        }
+        targetUserId = ownerSelect.value || currentUser.uid;
       }
 
       try {
@@ -1205,10 +1200,15 @@
 
       if (!select) return;
 
-      select.innerHTML = '<option value="">Seleccionar usuario...</option>';
+      select.innerHTML = '';
+
+      const selfOption = document.createElement('option');
+      selfOption.value = currentUser.uid;
+      selfOption.textContent = `Mi cuenta (${currentProfile?.email || currentUser.email || currentUser.uid})`;
+      select.appendChild(selfOption);
 
       allUsersCache
-        .filter((user) => user.role !== 'superadmin')
+        .filter((user) => user.uid !== currentUser.uid && user.role !== 'superadmin')
         .forEach((user) => {
           const option = document.createElement('option');
           option.value = user.uid;
