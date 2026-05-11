@@ -969,6 +969,8 @@ function listenBranding() {
   url.pathname = url.pathname.replace(/admin\.html$/, 'cliente.html');
   url.search = '';
   url.searchParams.set('share', currentShareId);
+  url.searchParams.set('owner', currentUser.uid);
+  url.searchParams.set('raffle', currentRaffleId);
 
   navigator.clipboard.writeText(url.toString()).then(() => {
     showToast('Enlace cliente copiado');
