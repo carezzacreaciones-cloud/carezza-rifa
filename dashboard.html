@@ -878,7 +878,13 @@
         const shareId = generateShareId();
 
         await ensureRootRaffleDoc(raffleId, raffleName, shareId, range, targetUserId);
-        await ensurePublicRaffleDoc(shareId, raffleId, raffleName, targetUserId);
+
+        try {
+          await ensurePublicRaffleDoc(shareId, raffleId, raffleName, targetUserId);
+        } catch (publicError) {
+          console.warn('No se pudo crear el índice público de la rifa. El enlace cliente usará owner y raffle como respaldo.', publicError);
+        }
+
         await ensureRaffleConfig(raffleId, raffleName, range, targetUserId);
 
         nameInput.value = '';
@@ -964,7 +970,7 @@
           : `admin.html?raffle=${encodeURIComponent(raffleId)}`;
 
         const clientUrl = shareId
-          ? `cliente.html?share=${encodeURIComponent(shareId)}`
+          ? `cliente.html?share=${encodeURIComponent(shareId)}&owner=${encodeURIComponent(ownerUid)}&raffle=${encodeURIComponent(raffleId)}`
           : '';
 
         const ownerBlock = isSuperAdmin()
