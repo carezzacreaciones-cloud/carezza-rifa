@@ -237,6 +237,28 @@
       return doc(db, 'public_raffles', shareId);
     }
 
+    function applyPublicRaffleData(publicData = {}) {
+      ownerUid = publicData.owner_uid || ownerUid;
+      currentRaffleId = publicData.raffle_id || currentRaffleId;
+
+      state.config = {
+        ...state.config,
+        ...Object.fromEntries(
+          Object.entries({
+            raffle_name: publicData.raffle_name,
+            prize: publicData.prize,
+            price: publicData.price,
+            whatsapp: publicData.whatsapp,
+            reserve_message: publicData.reserve_message,
+            payment_message: publicData.payment_message,
+            number_start: publicData.number_start,
+            number_end: publicData.number_end,
+            total_numbers: publicData.total_numbers
+          }).filter(([_, value]) => value != null && value !== '')
+        )
+      };
+    }
+
     function hexToRgba(hex, alpha = 1) {
       const cleanHex = String(hex || '').replace('#', '');
 
@@ -592,8 +614,8 @@ Teléfono: ${phone}`;
 
           if (publicSnap.exists()) {
             const publicData = publicSnap.data();
-            ownerUid = publicData.owner_uid || ownerUid;
-            currentRaffleId = publicData.raffle_id || currentRaffleId;
+            applyPublicRaffleData(publicData);
+            renderAll();
           }
         } catch (error) {
           console.warn('No se pudo leer el índice público. Se intentará cargar con owner y raffle.', error);
@@ -612,16 +634,15 @@ Teléfono: ${phone}`;
         return;
       }
 
-      if (!ownerUid || !currentRaffleId) {
-        document.body.innerHTML = `
-          <main class="min-h-screen flex items-center justify-center p-4">
-            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
-              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Enlace inválido</h1>
-              <p class="text-lavDark/70">Faltan datos para cargar la rifa.</p>
-            </div>
-          </main>
-        `;
-        return;
+      if (currentShareId) {
+        onSnapshot(publicRaffleRef(currentShareId), (snap) => {
+          if (snap.exists()) {
+            applyPublicRaffleData(snap.data());
+            renderAll();
+          }
+        }, (error) => {
+          console.warn('No se pudo escuchar el índice público de la rifa.', error);
+        });
       }
 
       onSnapshot(configRef(), (snap) => {
@@ -633,6 +654,8 @@ Teléfono: ${phone}`;
           };
           renderAll();
         }
+      }, (error) => {
+        console.warn('No se pudo leer la configuración privada. Se usarán los datos públicos.', error);
       });
 
       onSnapshot(ticketsColRef(), (snapshot) => {
@@ -640,6 +663,8 @@ Teléfono: ${phone}`;
         snapshot.forEach((docSnap) => next.set(docSnap.id, docSnap.data()));
         state.tickets = next;
         renderAll();
+      }, (error) => {
+        console.warn('No se pudieron leer los tickets de la rifa.', error);
       });
 
       renderAll();
