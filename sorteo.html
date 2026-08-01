@@ -7,7 +7,19 @@
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
-    body { font-family: 'Nunito', sans-serif; }
+    :root {
+      --brand-primary: #b5a7cb;
+      --brand-secondary: #f8dcc0;
+      --brand-accent: #8a7aa6;
+      --brand-light: #e8e2f0;
+      --brand-bg: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);
+    }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: var(--brand-bg);
+    }
+
     .font-heading { font-family: 'Cormorant Garamond', serif; }
     .winner-pop { animation: pop 0.45s ease-out; }
     @keyframes pop { 0% { transform: scale(0.88); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
@@ -29,17 +41,30 @@
   </script>
 </head>
 
-<body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+<body class="min-h-screen bg-white">
   <main class="min-h-screen p-4 sm:p-6">
     <div class="max-w-7xl mx-auto">
 
       <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
+            <img
+              id="brandLogo"
+              src=""
+              alt="Logo de marca"
+              class="h-20 w-20 rounded-2xl object-contain mb-4 hidden"
+            />
+
             <h1 class="font-heading text-4xl text-lavDark font-bold">Módulo de Sorteo</h1>
             <p class="text-sm text-lavDark/70 mt-2">
               Selecciona una o varias rifas, define el rango de números y elige ganador/a aleatoriamente.
             </p>
+
+            <div id="schoolInfoDraw" class="mt-3 text-xs text-lavDark/60 hidden">
+              <p id="schoolNameDraw" class="font-semibold text-lavDark"></p>
+              <div id="schoolContactDraw" class="flex flex-wrap gap-3 mt-1"></div>
+            </div>
+
             <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
           </div>
 
@@ -175,7 +200,7 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
     import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
-    import { getFirestore, collection, doc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+    import { getFirestore, collection, doc, getDoc, getDocs, onSnapshot } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
 
     let app, auth, db;
     let currentUser = null;
@@ -183,6 +208,134 @@
     let allRaffles = [];
     let preparedParticipants = [];
     let lastWinners = [];
+
+    const DEFAULT_BRANDING = {
+      school_name: '',
+      school_website: '',
+      school_email: '',
+      school_phone: '',
+      primary_color: '#b5a7cb',
+      secondary_color: '#f8dcc0',
+      accent_color: '#8a7aa6',
+      logo_url: ''
+    };
+
+    function hexToRgba(hex, alpha = 1) {
+      const cleanHex = String(hex || '').replace('#', '');
+
+      if (!/^[0-9A-Fa-f]{6}$/.test(cleanHex)) {
+        return `rgba(181, 167, 203, ${alpha})`;
+      }
+
+      const r = parseInt(cleanHex.slice(0, 2), 16);
+      const g = parseInt(cleanHex.slice(2, 4), 16);
+      const b = parseInt(cleanHex.slice(4, 6), 16);
+
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function normalizeWebsiteUrl(url) {
+      const cleanUrl = String(url || '').trim();
+      if (!cleanUrl) return '';
+      return cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')
+        ? cleanUrl
+        : `https://${cleanUrl}`;
+    }
+
+    function applyBranding(branding = {}) {
+      const data = {
+        ...DEFAULT_BRANDING,
+        ...branding
+      };
+
+      document.documentElement.style.setProperty('--brand-primary', data.primary_color);
+      document.documentElement.style.setProperty('--brand-secondary', data.secondary_color);
+      document.documentElement.style.setProperty('--brand-accent', data.accent_color);
+      document.documentElement.style.setProperty('--brand-light', hexToRgba(data.primary_color, 0.25));
+      document.documentElement.style.setProperty(
+        '--brand-bg',
+        `linear-gradient(135deg, ${hexToRgba(data.secondary_color, 0.45)} 0%, #ffffff 40%, ${hexToRgba(data.primary_color, 0.35)} 100%)`
+      );
+
+      document.body.style.background =
+        `linear-gradient(135deg, ${hexToRgba(data.secondary_color, 0.45)} 0%, #ffffff 40%, ${hexToRgba(data.primary_color, 0.35)} 100%)`;
+
+      document.querySelectorAll('.bg-lavender').forEach((el) => {
+        el.style.backgroundColor = data.primary_color;
+      });
+
+      document.querySelectorAll('.text-lavDark').forEach((el) => {
+        el.style.color = data.accent_color;
+      });
+
+      document.querySelectorAll('.border-lavLight').forEach((el) => {
+        el.style.borderColor = hexToRgba(data.primary_color, 0.35);
+      });
+
+      document.querySelectorAll('.bg-peachLight').forEach((el) => {
+        el.style.backgroundColor = hexToRgba(data.secondary_color, 0.45);
+      });
+
+      const brandLogo = document.getElementById('brandLogo');
+      if (brandLogo) {
+        if (data.logo_url) {
+          brandLogo.src = data.logo_url;
+          brandLogo.classList.remove('hidden');
+        } else {
+          brandLogo.removeAttribute('src');
+          brandLogo.classList.add('hidden');
+        }
+      }
+
+      applySchoolInfo(data);
+    }
+
+    function applySchoolInfo(branding = {}) {
+      const box = document.getElementById('schoolInfoDraw');
+      const nameEl = document.getElementById('schoolNameDraw');
+      const contactEl = document.getElementById('schoolContactDraw');
+
+      if (!box || !nameEl || !contactEl) return;
+
+      const name = branding.school_name || '';
+      const website = branding.school_website || '';
+      const email = branding.school_email || '';
+      const phone = branding.school_phone || '';
+      const hasData = Boolean(name || website || email || phone);
+
+      box.classList.toggle('hidden', !hasData);
+      nameEl.textContent = name;
+      contactEl.innerHTML = '';
+
+      if (website) {
+        const websiteEl = document.createElement('span');
+        websiteEl.innerHTML = `🌐 <a href="${normalizeWebsiteUrl(website)}" target="_blank" class="underline">${website}</a>`;
+        contactEl.appendChild(websiteEl);
+      }
+
+      if (email) {
+        const emailEl = document.createElement('span');
+        emailEl.innerHTML = `📧 <a href="mailto:${email}" class="underline">${email}</a>`;
+        contactEl.appendChild(emailEl);
+      }
+
+      if (phone) {
+        const phoneEl = document.createElement('span');
+        phoneEl.innerHTML = `📱 <a href="tel:${phone}" class="underline">${phone}</a>`;
+        contactEl.appendChild(phoneEl);
+      }
+    }
+
+    function listenBranding() {
+      onSnapshot(doc(db, 'school-branding', 'default'), (snap) => {
+        const branding = snap.exists() ? snap.data() : DEFAULT_BRANDING;
+        applyBranding(branding);
+      }, (error) => {
+        console.error('Error cargando branding:', error);
+        applyBranding(DEFAULT_BRANDING);
+      });
+    }
+
 
     function showStatus(message, isError = false) {
       const box = document.getElementById('statusBox');
@@ -318,6 +471,22 @@
       renderRaffles();
     }
 
+
+    function reapplyCurrentBranding() {
+      const primary = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim() || DEFAULT_BRANDING.primary_color;
+      const secondary = getComputedStyle(document.documentElement).getPropertyValue('--brand-secondary').trim() || DEFAULT_BRANDING.secondary_color;
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--brand-accent').trim() || DEFAULT_BRANDING.accent_color;
+      applyBranding({
+        primary_color: primary,
+        secondary_color: secondary,
+        accent_color: accent,
+        school_name: document.getElementById('schoolNameDraw')?.textContent || '',
+        school_website: '',
+        school_email: '',
+        school_phone: ''
+      });
+    }
+
     function renderRaffles() {
       const list = document.getElementById('rafflesList');
       const countBox = document.getElementById('rafflesCountBox');
@@ -388,6 +557,7 @@
       });
 
       updateCounters();
+      reapplyCurrentBranding();
     }
 
     function getSelectedRaffles() {
@@ -660,6 +830,8 @@
     app = initializeApp(window.FIREBASE_CONFIG);
     auth = getAuth(app);
     db = getFirestore(app);
+
+    listenBranding();
 
     onAuthStateChanged(auth, async (user) => {
       if (!user) {
