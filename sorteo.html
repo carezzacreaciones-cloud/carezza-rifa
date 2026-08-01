@@ -1,0 +1,679 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sorteo | Carezza Rifa</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Nunito', sans-serif; }
+    .font-heading { font-family: 'Cormorant Garamond', serif; }
+    .winner-pop { animation: pop 0.45s ease-out; }
+    @keyframes pop { 0% { transform: scale(0.88); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            lavender: '#b5a7cb',
+            peach: '#f8dcc0',
+            lavLight: '#e8e2f0',
+            peachLight: '#fdf0e4',
+            lavDark: '#8a7aa6'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen bg-white" style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%);">
+  <main class="min-h-screen p-4 sm:p-6">
+    <div class="max-w-7xl mx-auto">
+
+      <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mb-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <h1 class="font-heading text-4xl text-lavDark font-bold">Módulo de Sorteo</h1>
+            <p class="text-sm text-lavDark/70 mt-2">
+              Selecciona una o varias rifas, define el rango de números y elige ganador/a aleatoriamente.
+            </p>
+            <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <a href="dashboard.html" class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
+              Volver al dashboard
+            </a>
+            <button id="logoutBtn" class="h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition">
+              Cerrar sesión
+            </button>
+          </div>
+        </div>
+
+        <div id="statusBox" class="mt-4 text-sm rounded-2xl px-4 py-3 bg-peachLight text-lavDark/80 hidden"></div>
+      </section>
+
+      <section class="grid grid-cols-1 xl:grid-cols-[1fr_420px] gap-6">
+
+        <div class="space-y-6">
+          <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h2 class="font-heading text-3xl text-lavDark font-bold">Rifas activas</h2>
+                <p class="text-sm text-lavDark/60">Marca las rifas que participarán en el sorteo.</p>
+              </div>
+              <span id="rafflesCountBox" class="text-sm text-lavDark/60">0 rifas</span>
+            </div>
+
+            <div class="flex flex-wrap gap-3 mb-4">
+              <button id="selectAllBtn" class="h-10 px-4 rounded-2xl bg-lavender text-white text-sm font-semibold hover:bg-lavDark transition">
+                Seleccionar todas
+              </button>
+              <button id="clearSelectionBtn" class="h-10 px-4 rounded-2xl bg-white text-lavDark border border-lavLight text-sm font-semibold hover:bg-lavLight/30 transition">
+                Limpiar selección
+              </button>
+              <button id="reloadBtn" class="h-10 px-4 rounded-2xl bg-white text-lavDark border border-lavLight text-sm font-semibold hover:bg-lavLight/30 transition">
+                Recargar datos
+              </button>
+            </div>
+
+            <div id="rafflesList" class="grid grid-cols-1 gap-4">
+              <p class="text-lavDark/50">Cargando rifas...</p>
+            </div>
+          </section>
+
+          <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8">
+            <h2 class="font-heading text-3xl text-lavDark font-bold mb-4">Participantes disponibles</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div class="rounded-2xl bg-peachLight px-4 py-3">
+                <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Tickets válidos</p>
+                <p id="validTicketsBox" class="text-2xl font-bold text-lavDark">0</p>
+              </div>
+              <div class="rounded-2xl bg-peachLight px-4 py-3">
+                <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Rifas seleccionadas</p>
+                <p id="selectedRafflesBox" class="text-2xl font-bold text-lavDark">0</p>
+              </div>
+              <div class="rounded-2xl bg-peachLight px-4 py-3">
+                <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Modo</p>
+                <p id="modeBox" class="text-2xl font-bold text-lavDark">Pagados</p>
+              </div>
+            </div>
+
+            <div id="participantsPreview" class="max-h-[360px] overflow-auto rounded-2xl border border-lavLight bg-white">
+              <div class="p-4 text-lavDark/50">Selecciona una rifa para ver participantes.</div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-6">
+          <section class="bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 sticky top-4">
+            <h2 class="font-heading text-3xl text-lavDark font-bold mb-4">Configurar sorteo</h2>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-semibold text-lavDark mb-2">Participan</label>
+                <select id="statusFilter" class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40">
+                  <option value="paid">Solo números pagados</option>
+                  <option value="reserved">Solo números reservados</option>
+                  <option value="paid_reserved">Pagados + reservados</option>
+                  <option value="all_taken">Todos los ocupados</option>
+                </select>
+                <p class="text-xs text-lavDark/50 mt-1">Recomendado para venta real: solo números pagados.</p>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm font-semibold text-lavDark mb-2">Desde</label>
+                  <input id="minNumberInput" type="number" min="1" placeholder="1" class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-lavDark mb-2">Hasta</label>
+                  <input id="maxNumberInput" type="number" min="1" placeholder="100" class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-sm font-semibold text-lavDark mb-2">Cantidad de ganadores</label>
+                <input id="winnersCountInput" type="number" min="1" value="1" class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40" />
+                <p class="text-xs text-lavDark/50 mt-1">Puedes sacar 1 o más ganadores sin repetir ticket.</p>
+              </div>
+
+              <button id="prepareDrawBtn" class="w-full h-12 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition">
+                Preparar participantes
+              </button>
+
+              <button id="drawBtn" class="w-full h-14 rounded-2xl bg-lavender text-white font-bold text-lg hover:bg-lavDark transition">
+                Sortear ahora
+              </button>
+            </div>
+
+            <div id="winnerBox" class="hidden winner-pop mt-6 rounded-3xl bg-peachLight border border-peach p-6 text-center">
+              <p class="text-sm uppercase tracking-wide text-lavDark/60 font-bold">Ganador/a</p>
+              <p id="winnerNumber" class="font-heading text-6xl text-lavDark font-bold mt-2">00</p>
+              <p id="winnerName" class="text-xl text-lavDark font-bold mt-2"></p>
+              <p id="winnerPhone" class="text-sm text-lavDark/70 mt-1"></p>
+              <p id="winnerRaffle" class="text-sm text-lavDark/70 mt-1"></p>
+            </div>
+
+            <div id="winnersHistoryBox" class="hidden mt-6">
+              <h3 class="font-heading text-2xl text-lavDark font-bold mb-3">Resultado del sorteo</h3>
+              <div id="winnersList" class="space-y-3"></div>
+              <button id="copyResultBtn" class="w-full h-11 mt-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition">
+                Copiar resultado
+              </button>
+            </div>
+          </section>
+        </aside>
+      </section>
+    </div>
+  </main>
+
+  <script src="firebase-config.js"></script>
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js';
+    import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js';
+    import { getFirestore, collection, doc, getDoc, getDocs } from 'https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js';
+
+    let app, auth, db;
+    let currentUser = null;
+    let currentProfile = null;
+    let allRaffles = [];
+    let preparedParticipants = [];
+    let lastWinners = [];
+
+    function showStatus(message, isError = false) {
+      const box = document.getElementById('statusBox');
+      box.textContent = message;
+      box.classList.remove('hidden');
+      box.className = 'mt-4 text-sm rounded-2xl px-4 py-3 ' + (
+        isError ? 'bg-red-50 text-red-600' : 'bg-peachLight text-lavDark/80'
+      );
+    }
+
+    function hideStatus() {
+      const box = document.getElementById('statusBox');
+      box.classList.add('hidden');
+      box.textContent = '';
+    }
+
+    function isSuperAdmin() {
+      return currentProfile?.role === 'superadmin';
+    }
+
+    function userProfileRef(userId) {
+      return doc(db, 'users', userId);
+    }
+
+    function rafflesColRef(userId) {
+      return collection(db, 'users', userId, 'raffles');
+    }
+
+    function ticketsColRef(ownerUid, raffleId) {
+      return collection(db, 'users', ownerUid, 'raffles', raffleId, 'tickets');
+    }
+
+    function getTicketNumber(ticketId, data) {
+      const fromData = Number(data.number || data.ticket_number || data.ticket || data.numero);
+      if (Number.isFinite(fromData) && fromData > 0) return fromData;
+      const fromId = Number(String(ticketId).replace(/\D/g, ''));
+      if (Number.isFinite(fromId) && fromId > 0) return fromId;
+      return null;
+    }
+
+    function normalizeStatus(status) {
+      return String(status || '').toLowerCase().trim();
+    }
+
+    function ticketMatchesStatus(ticketStatus, selectedMode) {
+      const status = normalizeStatus(ticketStatus);
+      if (selectedMode === 'paid') return ['paid', 'pagado', 'pagada'].includes(status);
+      if (selectedMode === 'reserved') return ['reserved', 'reservado', 'reservada'].includes(status);
+      if (selectedMode === 'paid_reserved') return ['paid', 'pagado', 'pagada', 'reserved', 'reservado', 'reservada'].includes(status);
+      return status && !['available', 'disponible', 'free'].includes(status);
+    }
+
+    function formatMoney(value) {
+      return Number(value || 0).toLocaleString('es-CL');
+    }
+
+    async function loadCurrentProfile(user) {
+      const snap = await getDoc(userProfileRef(user.uid));
+      if (!snap.exists()) {
+        showStatus('No se encontró el perfil del usuario en Firestore.', true);
+        throw new Error('Perfil de usuario no encontrado');
+      }
+
+      const data = snap.data();
+
+      if (data.active === false) {
+        await signOut(auth);
+        document.body.innerHTML = `
+          <main class="min-h-screen flex items-center justify-center p-4">
+            <div class="max-w-md w-full bg-white rounded-3xl border border-lavLight shadow-lg p-6 text-center">
+              <h1 class="font-heading text-3xl text-lavDark font-bold mb-3">Acceso deshabilitado</h1>
+              <p class="text-lavDark/70">Tu cuenta está desactivada. Contacta a la administradora.</p>
+            </div>
+          </main>
+        `;
+        throw new Error('Usuario inactivo');
+      }
+
+      currentProfile = {
+        email: data.email || user.email || '',
+        display_name: data.display_name || '',
+        role: data.role || 'admin',
+        active: data.active !== false
+      };
+    }
+
+    async function loadRaffles() {
+      allRaffles = [];
+
+      if (isSuperAdmin()) {
+        const usersSnap = await getDocs(collection(db, 'users'));
+
+        for (const userDoc of usersSnap.docs) {
+          const userData = userDoc.data() || {};
+          const rafflesSnap = await getDocs(rafflesColRef(userDoc.id));
+
+          rafflesSnap.forEach((raffleDoc) => {
+            const data = raffleDoc.data() || {};
+            if (!data.public_share_id) return;
+
+            allRaffles.push({
+              id: raffleDoc.id,
+              owner_uid: userDoc.id,
+              owner_email: userData.email || '',
+              owner_name: userData.display_name || '',
+              data
+            });
+          });
+        }
+      } else {
+        const rafflesSnap = await getDocs(rafflesColRef(currentUser.uid));
+
+        rafflesSnap.forEach((raffleDoc) => {
+          const data = raffleDoc.data() || {};
+          if (!data.public_share_id) return;
+
+          allRaffles.push({
+            id: raffleDoc.id,
+            owner_uid: currentUser.uid,
+            owner_email: currentProfile.email || currentUser.email || '',
+            owner_name: currentProfile.display_name || '',
+            data
+          });
+        });
+      }
+
+      allRaffles.sort((a, b) => {
+        const av = a.data.raffle_name || a.id;
+        const bv = b.data.raffle_name || b.id;
+        return av.localeCompare(bv, 'es');
+      });
+
+      renderRaffles();
+    }
+
+    function renderRaffles() {
+      const list = document.getElementById('rafflesList');
+      const countBox = document.getElementById('rafflesCountBox');
+
+      countBox.textContent = `${allRaffles.length} ${allRaffles.length === 1 ? 'rifa' : 'rifas'}`;
+
+      if (!allRaffles.length) {
+        list.innerHTML = '<p class="text-lavDark/50">No hay rifas activas para sortear.</p>';
+        updateCounters();
+        return;
+      }
+
+      list.innerHTML = '';
+
+      allRaffles.forEach((raffle) => {
+        const data = raffle.data || {};
+        const name = data.raffle_name || raffle.id;
+        const prize = data.prize || 'Sin premio';
+        const price = data.price || '0';
+        const totalNumbers = data.total_numbers || '0';
+
+        const ownerInfo = isSuperAdmin()
+          ? `
+            <div class="mt-3 rounded-xl bg-lavLight/40 px-3 py-2">
+              <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Creada por</p>
+              <p class="text-sm font-semibold text-lavDark">${raffle.owner_name || 'Sin nombre'}</p>
+              <p class="text-xs text-lavDark/60 break-all">${raffle.owner_email || raffle.owner_uid}</p>
+            </div>
+          `
+          : '';
+
+        const card = document.createElement('label');
+        card.className = 'block rounded-2xl border border-lavLight bg-white p-4 shadow-sm cursor-pointer hover:bg-peachLight/30 transition';
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <input type="checkbox" class="raffle-check mt-2 h-5 w-5 accent-[#b5a7cb]" data-owner="${raffle.owner_uid}" data-id="${raffle.id}" />
+            <div class="flex-1">
+              <h3 class="font-heading text-2xl text-lavDark font-bold">${name}</h3>
+              <p class="text-sm text-lavDark/60 mt-1">ID: ${raffle.id}</p>
+              ${ownerInfo}
+              <div class="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
+                  <p class="text-sm font-semibold text-lavDark">${prize}</p>
+                </div>
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
+                  <p class="text-sm font-semibold text-lavDark">$${formatMoney(price)}</p>
+                </div>
+                <div class="rounded-xl bg-peachLight px-3 py-2">
+                  <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Cantidad</p>
+                  <p class="text-sm font-semibold text-lavDark">${totalNumbers}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('.raffle-check').addEventListener('change', () => {
+          preparedParticipants = [];
+          lastWinners = [];
+          renderParticipantsPreview();
+          renderWinners();
+          updateCounters();
+        });
+
+        list.appendChild(card);
+      });
+
+      updateCounters();
+    }
+
+    function getSelectedRaffles() {
+      const checks = [...document.querySelectorAll('.raffle-check:checked')];
+      return checks
+        .map((check) => allRaffles.find((r) => r.owner_uid === check.dataset.owner && r.id === check.dataset.id))
+        .filter(Boolean);
+    }
+
+    async function prepareParticipants() {
+      hideStatus();
+      preparedParticipants = [];
+      lastWinners = [];
+      renderWinners();
+
+      const selectedRaffles = getSelectedRaffles();
+      if (!selectedRaffles.length) {
+        showStatus('Selecciona al menos una rifa para preparar el sorteo.', true);
+        renderParticipantsPreview();
+        updateCounters();
+        return;
+      }
+
+      const statusMode = document.getElementById('statusFilter').value;
+      const minRaw = document.getElementById('minNumberInput').value;
+      const maxRaw = document.getElementById('maxNumberInput').value;
+      const minNumber = minRaw ? Number(minRaw) : null;
+      const maxNumber = maxRaw ? Number(maxRaw) : null;
+
+      if (minNumber !== null && maxNumber !== null && minNumber > maxNumber) {
+        showStatus('El límite Desde no puede ser mayor que el límite Hasta.', true);
+        return;
+      }
+
+      for (const raffle of selectedRaffles) {
+        const ticketsSnap = await getDocs(ticketsColRef(raffle.owner_uid, raffle.id));
+
+        ticketsSnap.forEach((ticketDoc) => {
+          const data = ticketDoc.data() || {};
+          const ticketNumber = getTicketNumber(ticketDoc.id, data);
+
+          if (!ticketNumber) return;
+          if (minNumber !== null && ticketNumber < minNumber) return;
+          if (maxNumber !== null && ticketNumber > maxNumber) return;
+          if (!ticketMatchesStatus(data.status, statusMode)) return;
+
+          preparedParticipants.push({
+            owner_uid: raffle.owner_uid,
+            raffle_id: raffle.id,
+            raffle_name: raffle.data.raffle_name || raffle.id,
+            prize: raffle.data.prize || '',
+            ticket_id: ticketDoc.id,
+            number: ticketNumber,
+            status: data.status || '',
+            name: data.name || data.customer_name || data.client_name || 'Sin nombre',
+            phone: data.phone || data.whatsapp || data.customer_phone || '',
+            raw: data
+          });
+        });
+      }
+
+      preparedParticipants.sort((a, b) => {
+        const raffleCompare = a.raffle_name.localeCompare(b.raffle_name, 'es');
+        if (raffleCompare !== 0) return raffleCompare;
+        return a.number - b.number;
+      });
+
+      if (!preparedParticipants.length) {
+        showStatus('No hay participantes válidos con esos filtros. Revisa si hay números pagados o reservados.', true);
+      } else {
+        showStatus(`Participantes preparados: ${preparedParticipants.length}. Ya puedes sortear.`);
+      }
+
+      renderParticipantsPreview();
+      updateCounters();
+    }
+
+    function drawWinners() {
+      hideStatus();
+
+      if (!preparedParticipants.length) {
+        showStatus('Primero prepara los participantes.', true);
+        return;
+      }
+
+      const count = Number(document.getElementById('winnersCountInput').value || 1);
+
+      if (!Number.isFinite(count) || count < 1) {
+        showStatus('La cantidad de ganadores debe ser al menos 1.', true);
+        return;
+      }
+
+      if (count > preparedParticipants.length) {
+        showStatus('La cantidad de ganadores no puede ser mayor que los participantes disponibles.', true);
+        return;
+      }
+
+      const pool = [...preparedParticipants];
+      const winners = [];
+
+      for (let i = 0; i < count; i++) {
+        const randomIndex = Math.floor(Math.random() * pool.length);
+        const [winner] = pool.splice(randomIndex, 1);
+        winners.push(winner);
+      }
+
+      lastWinners = winners;
+      renderWinners();
+      showStatus('Sorteo realizado correctamente.');
+    }
+
+    function renderParticipantsPreview() {
+      const box = document.getElementById('participantsPreview');
+
+      if (!preparedParticipants.length) {
+        box.innerHTML = '<div class="p-4 text-lavDark/50">No hay participantes preparados todavía.</div>';
+        return;
+      }
+
+      box.innerHTML = `
+        <table class="w-full text-sm">
+          <thead class="bg-peachLight text-lavDark sticky top-0">
+            <tr>
+              <th class="text-left p-3">Número</th>
+              <th class="text-left p-3">Nombre</th>
+              <th class="text-left p-3">Rifa</th>
+              <th class="text-left p-3">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${preparedParticipants.map((p) => `
+              <tr class="border-t border-lavLight">
+                <td class="p-3 font-bold text-lavDark">#${p.number}</td>
+                <td class="p-3 text-lavDark">${p.name}</td>
+                <td class="p-3 text-lavDark/70">${p.raffle_name}</td>
+                <td class="p-3 text-lavDark/70">${p.status}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function renderWinners() {
+      const winnerBox = document.getElementById('winnerBox');
+      const historyBox = document.getElementById('winnersHistoryBox');
+      const winnersList = document.getElementById('winnersList');
+
+      if (!lastWinners.length) {
+        winnerBox.classList.add('hidden');
+        historyBox.classList.add('hidden');
+        winnersList.innerHTML = '';
+        return;
+      }
+
+      const first = lastWinners[0];
+      winnerBox.classList.remove('hidden');
+      document.getElementById('winnerNumber').textContent = '#' + first.number;
+      document.getElementById('winnerName').textContent = first.name;
+      document.getElementById('winnerPhone').textContent = first.phone ? `Tel: ${first.phone}` : 'Sin teléfono';
+      document.getElementById('winnerRaffle').textContent = first.raffle_name;
+
+      historyBox.classList.remove('hidden');
+      winnersList.innerHTML = lastWinners.map((winner, index) => `
+        <div class="rounded-2xl border border-lavLight bg-white p-4">
+          <p class="text-xs uppercase tracking-wide text-lavDark/60 font-bold">Ganador ${index + 1}</p>
+          <p class="text-xl font-bold text-lavDark mt-1">#${winner.number} · ${winner.name}</p>
+          <p class="text-sm text-lavDark/70">${winner.raffle_name}</p>
+          <p class="text-sm text-lavDark/70">${winner.phone ? 'Tel: ' + winner.phone : 'Sin teléfono'}</p>
+        </div>
+      `).join('');
+    }
+
+    function updateCounters() {
+      const selected = getSelectedRaffles();
+      const statusMode = document.getElementById('statusFilter').value;
+
+      document.getElementById('selectedRafflesBox').textContent = selected.length;
+      document.getElementById('validTicketsBox').textContent = preparedParticipants.length;
+
+      const labels = {
+        paid: 'Pagados',
+        reserved: 'Reservados',
+        paid_reserved: 'Ambos',
+        all_taken: 'Ocupados'
+      };
+
+      document.getElementById('modeBox').textContent = labels[statusMode] || 'Pagados';
+    }
+
+    async function copyResult() {
+      if (!lastWinners.length) {
+        showStatus('No hay resultado para copiar.', true);
+        return;
+      }
+
+      const text = [
+        'Resultado del sorteo:',
+        '',
+        ...lastWinners.map((winner, index) =>
+          `Ganador ${index + 1}: #${winner.number} - ${winner.name} - ${winner.raffle_name}${winner.phone ? ' - ' + winner.phone : ''}`
+        )
+      ].join('\n');
+
+      await navigator.clipboard.writeText(text);
+      showStatus('Resultado copiado al portapapeles.');
+    }
+
+    function resetDrawState() {
+      preparedParticipants = [];
+      lastWinners = [];
+      renderParticipantsPreview();
+      renderWinners();
+      updateCounters();
+    }
+
+    function selectAllRaffles() {
+      document.querySelectorAll('.raffle-check').forEach((check) => check.checked = true);
+      resetDrawState();
+    }
+
+    function clearSelection() {
+      document.querySelectorAll('.raffle-check').forEach((check) => check.checked = false);
+      resetDrawState();
+    }
+
+    async function initProtectedArea(user) {
+      currentUser = user;
+      await loadCurrentProfile(user);
+
+      const userBox = document.getElementById('userBox');
+      userBox.classList.remove('hidden');
+      userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
+
+      await loadRaffles();
+      renderParticipantsPreview();
+      updateCounters();
+    }
+
+    document.getElementById('prepareDrawBtn').addEventListener('click', prepareParticipants);
+    document.getElementById('drawBtn').addEventListener('click', drawWinners);
+    document.getElementById('copyResultBtn').addEventListener('click', copyResult);
+    document.getElementById('selectAllBtn').addEventListener('click', selectAllRaffles);
+    document.getElementById('clearSelectionBtn').addEventListener('click', clearSelection);
+    document.getElementById('reloadBtn').addEventListener('click', async () => {
+      resetDrawState();
+      await loadRaffles();
+      showStatus('Datos recargados.');
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', resetDrawState);
+    document.getElementById('minNumberInput').addEventListener('input', resetDrawState);
+    document.getElementById('maxNumberInput').addEventListener('input', resetDrawState);
+
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      try {
+        await signOut(auth);
+      } catch (error) {
+        console.error('Error cerrando sesión:', error);
+      } finally {
+        window.location.href = 'login.html';
+      }
+    });
+
+    if (!window.FIREBASE_CONFIG) {
+      alert('Falta firebase-config.js');
+      throw new Error('Falta firebase-config.js');
+    }
+
+    app = initializeApp(window.FIREBASE_CONFIG);
+    auth = getAuth(app);
+    db = getFirestore(app);
+
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      try {
+        await initProtectedArea(user);
+      } catch (error) {
+        console.error(error);
+        showStatus('Hubo un problema cargando el módulo de sorteo.', true);
+      }
+    });
+  </script>
+</body>
+</html>
