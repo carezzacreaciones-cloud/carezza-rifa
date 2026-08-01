@@ -417,6 +417,14 @@ function listenBranding() {
     let currentShareId = null;
     let adminSelectionMode = false;
     let selectedAdminNumbers = new Set();
+
+    const raffleStatusBadge = document.getElementById('raffleStatusBadge');
+    const raffleStatusText = document.getElementById('raffleStatusText');
+
+    const pauseRaffleBtn = document.getElementById('pauseRaffleBtn');
+    const activateRaffleBtn = document.getElementById('activateRaffleBtn');
+    const closeRaffleBtn = document.getElementById('closeRaffleBtn');
+    const goDrawBtn = document.getElementById('goDrawBtn');
     
     const state = {
       config: {
