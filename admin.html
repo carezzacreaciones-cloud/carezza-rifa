@@ -1270,6 +1270,24 @@ if (clientLink && currentShareId) {
         window.location.href = 'login.html';
       });
 
+      if (pauseRaffleBtn) {
+        pauseRaffleBtn.addEventListener('click', () => {
+          updateRaffleStatus('paused');
+        });
+      }
+
+      if (activateRaffleBtn) {
+        activateRaffleBtn.addEventListener('click', () => {
+          updateRaffleStatus('active');
+        });
+      }
+
+      if (closeRaffleBtn) {
+        closeRaffleBtn.addEventListener('click', () => {
+          updateRaffleStatus('closed');
+        });
+      }
+
       onAuthStateChanged(auth, async (user) => {
         if (!user) {
           window.location.href = 'login.html';
