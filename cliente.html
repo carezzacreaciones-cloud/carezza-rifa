@@ -153,6 +153,9 @@
     let currentRaffleStatus = 'active';
     let selectedNumbers = new Set();
 
+    const raffleClosedNotice = document.getElementById('raffleClosedNotice');
+    const raffleClosedNoticeText = document.getElementById('raffleClosedNoticeText');
+
     const state = {
       config: {
         raffle_name: 'Gran Rifa',
