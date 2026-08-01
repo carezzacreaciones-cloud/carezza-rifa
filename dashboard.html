@@ -835,6 +835,7 @@
           number_start: String(range.start),
           number_end: String(range.end),
           total_numbers: String(range.count),
+          raffle_status: 'active',
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         }, { merge: true });
