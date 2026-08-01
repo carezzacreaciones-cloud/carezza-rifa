@@ -576,6 +576,11 @@
     });
 
     async function reserveSelectedNumbers() {
+      if (!isRaffleReservable()) {
+        alert(getRaffleStatusMessage(currentRaffleStatus));
+        return;
+      }
+
       const name = document.getElementById('mName')?.value?.trim();
       const phone = document.getElementById('mPhone')?.value?.trim();
       const numbers = [...selectedNumbers].sort((a, b) => a - b);
