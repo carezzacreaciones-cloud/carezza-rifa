@@ -1116,6 +1116,61 @@ function listenBranding() {
 }, { merge: true });
   }
 }
+    function getStatusInfo(status) {
+      const normalizedStatus = status || 'active';
+
+      const statusMap = {
+        active: {
+          label: 'Activa',
+          text: 'La rifa está disponible para reservas.',
+          className: 'bg-emerald-50 text-emerald-600 border-emerald-200'
+        },
+        paused: {
+          label: 'Pausada',
+          text: 'La rifa está pausada temporalmente. No debería recibir nuevas reservas.',
+          className: 'bg-amber-50 text-amber-600 border-amber-200'
+        },
+        closed: {
+          label: 'Cerrada',
+          text: 'La rifa está cerrada. Ya está lista para el sorteo.',
+          className: 'bg-slate-50 text-slate-600 border-slate-200'
+        },
+        drawn: {
+          label: 'Sorteada',
+          text: 'La rifa ya fue sorteada y debe conservarse como respaldo.',
+          className: 'bg-violet-50 text-violet-600 border-violet-200'
+        }
+      };
+
+      return statusMap[normalizedStatus] || statusMap.active;
+    }
+
+    function renderRaffleStatus(status) {
+      if (!raffleStatusBadge || !raffleStatusText) return;
+
+      const statusInfo = getStatusInfo(status);
+
+      raffleStatusBadge.textContent = statusInfo.label;
+      raffleStatusBadge.className = `inline-flex px-4 py-2 rounded-full border text-sm font-bold ${statusInfo.className}`;
+      raffleStatusText.textContent = statusInfo.text;
+
+      if (pauseRaffleBtn) {
+        pauseRaffleBtn.classList.toggle('hidden', status !== 'active');
+      }
+
+      if (activateRaffleBtn) {
+        activateRaffleBtn.classList.toggle('hidden', status === 'active' || status === 'drawn');
+      }
+
+      if (closeRaffleBtn) {
+        closeRaffleBtn.classList.toggle('hidden', status === 'closed' || status === 'drawn');
+      }
+
+      if (goDrawBtn) {
+        goDrawBtn.classList.toggle('hidden', status !== 'closed');
+      }
+    }
+
     async function startApp(user) {
       currentUser = user;
       currentRaffleId = getRaffleIdFromUrl();
