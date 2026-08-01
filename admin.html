@@ -1171,6 +1171,38 @@ function listenBranding() {
       }
     }
 
+    async function updateRaffleStatus(newStatus) {
+      if (!currentRaffleId || !currentOwnerUid) {
+        alert('No se pudo identificar la rifa actual.');
+        return;
+      }
+
+      const statusInfo = getStatusInfo(newStatus);
+
+      const confirmChange = confirm(`¿Seguro que quieres cambiar esta rifa a estado "${statusInfo.label}"?`);
+
+      if (!confirmChange) return;
+
+      try {
+        await setDoc(configRef(), {
+          raffle_status: newStatus,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        await setDoc(raffleRootRef(), {
+          raffle_status: newStatus,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        renderRaffleStatus(newStatus);
+
+        alert(`La rifa ahora está en estado: ${statusInfo.label}`);
+      } catch (error) {
+        console.error(error);
+        alert('No se pudo actualizar el estado de la rifa.');
+      }
+    }
+
     async function startApp(user) {
       currentUser = user;
       currentRaffleId = getRaffleIdFromUrl();
