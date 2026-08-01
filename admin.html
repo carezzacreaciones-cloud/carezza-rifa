@@ -1211,6 +1211,9 @@ function listenBranding() {
       const configSnap = await getDoc(configRef());
 if (configSnap.exists()) {
   const configData = configSnap.data();
+
+  renderRaffleStatus(configData.raffle_status || 'active');
+
   state.config = {
     ...state.config,
     ...Object.fromEntries(Object.entries(configData).filter(([_, v]) => v != null))
@@ -1241,6 +1244,9 @@ if (clientLink && currentShareId) {
       onSnapshot(configRef(), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
+
+          renderRaffleStatus(data.raffle_status || 'active');
+
           state.config = {
             ...state.config,
             ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
