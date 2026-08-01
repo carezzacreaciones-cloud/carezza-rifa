@@ -86,6 +86,65 @@
 </div>
     </header>
 
+    <section class="max-w-6xl mx-auto px-4 mt-6">
+      <div class="bg-white/90 backdrop-blur rounded-[2rem] shadow-xl border border-lavLight p-5">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-[0.25em] text-lavDark/50 font-bold">
+              Estado de la campaña
+            </p>
+
+            <div class="flex items-center gap-3 mt-2">
+              <span
+                id="raffleStatusBadge"
+                class="inline-flex px-4 py-2 rounded-full border text-sm font-bold bg-emerald-50 text-emerald-600 border-emerald-200"
+              >
+                Activa
+              </span>
+
+              <p id="raffleStatusText" class="text-sm text-lavDark/60">
+                La rifa está disponible para reservas.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <button
+              id="pauseRaffleBtn"
+              type="button"
+              class="px-4 py-3 rounded-2xl bg-amber-100 text-amber-700 font-bold hover:bg-amber-200 transition"
+            >
+              Pausar rifa
+            </button>
+
+            <button
+              id="activateRaffleBtn"
+              type="button"
+              class="px-4 py-3 rounded-2xl bg-emerald-100 text-emerald-700 font-bold hover:bg-emerald-200 transition"
+            >
+              Reactivar
+            </button>
+
+            <button
+              id="closeRaffleBtn"
+              type="button"
+              class="px-4 py-3 rounded-2xl bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition"
+            >
+              Cerrar rifa
+            </button>
+
+            <a
+              id="goDrawBtn"
+              href="sorteo.html"
+              class="px-4 py-3 rounded-2xl bg-lavender text-white font-bold hover:bg-lavDark transition"
+            >
+              Ir a sorteo
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <main class="w-full px-3 sm:px-6 pb-8 flex flex-col lg:flex-row gap-5 max-w-[1400px] mx-auto">
       <div class="w-full lg:w-[380px] lg:min-w-[340px] flex flex-col gap-5">
         <section class="bg-white/80 backdrop-blur rounded-2xl p-5 shadow-sm border border-lavLight/50 fade-in">
