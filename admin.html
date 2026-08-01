@@ -1217,6 +1217,10 @@ if (configSnap.exists()) {
   };
 }
 
+if (goDrawBtn) {
+  goDrawBtn.href = `sorteo.html?owner=${encodeURIComponent(currentOwnerUid)}&raffle=${encodeURIComponent(currentRaffleId)}`;
+}
+
 const raffleRootSnap = await getDoc(raffleRootRef());
 if (raffleRootSnap.exists()) {
   const raffleRootData = raffleRootSnap.data();
