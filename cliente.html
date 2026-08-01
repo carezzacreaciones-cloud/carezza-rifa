@@ -703,10 +703,14 @@ Teléfono: ${phone}`;
 
       onSnapshot(configRef(), (snap) => {
         if (snap.exists()) {
-          const data = snap.data();
+          const configData = snap.data();
+
+          currentRaffleStatus = configData.raffle_status || 'active';
+          applyRaffleAvailability();
+
           state.config = {
             ...state.config,
-            ...Object.fromEntries(Object.entries(data).filter(([_, v]) => v != null))
+            ...Object.fromEntries(Object.entries(configData).filter(([_, v]) => v != null))
           };
           renderAll();
         }
