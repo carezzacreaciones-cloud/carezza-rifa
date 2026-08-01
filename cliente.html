@@ -158,6 +158,21 @@
       branding: {}
     };
 
+    function isRaffleReservable() {
+      return currentRaffleStatus === 'active';
+    }
+
+    function getRaffleStatusMessage(status) {
+      const statusMap = {
+        active: '',
+        paused: 'Esta rifa está pausada temporalmente. Por ahora no se pueden hacer nuevas reservas.',
+        closed: 'Esta rifa ya está cerrada. No se pueden hacer nuevas reservas.',
+        drawn: 'Esta rifa ya fue sorteada. No se pueden hacer nuevas reservas.'
+      };
+
+      return statusMap[status] || 'Esta rifa no está disponible para nuevas reservas.';
+    }
+
     function showToast(msg, color = '#b5a7cb') {
       const t = document.getElementById('toast');
       t.textContent = msg;
