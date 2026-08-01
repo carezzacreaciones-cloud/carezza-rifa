@@ -968,6 +968,24 @@
         const numberEnd = data.number_end ?? String(parseInt(data.total_numbers || '100', 10));
         const totalNumbers = data.total_numbers || String((parseInt(numberEnd, 10) - parseInt(numberStart, 10)) + 1);
         const shareId = data.public_share_id || '';
+        const raffleStatus = data.raffle_status || 'active';
+
+        const statusLabels = {
+          active: 'Activa',
+          paused: 'Pausada',
+          closed: 'Cerrada',
+          drawn: 'Sorteada'
+        };
+
+        const statusClasses = {
+          active: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+          paused: 'bg-amber-50 text-amber-600 border-amber-200',
+          closed: 'bg-slate-50 text-slate-600 border-slate-200',
+          drawn: 'bg-violet-50 text-violet-600 border-violet-200'
+        };
+
+        const statusLabel = statusLabels[raffleStatus] || 'Activa';
+        const statusClass = statusClasses[raffleStatus] || statusClasses.active;
 
         const adminUrl = isSuperAdmin()
           ? `admin.html?raffle=${encodeURIComponent(raffleId)}&owner=${encodeURIComponent(ownerUid)}`
@@ -995,6 +1013,9 @@
             <div class="flex-1">
               <h3 class="font-heading text-2xl text-lavDark font-bold">${displayName}</h3>
               <p class="text-sm text-lavDark/60 mt-1">ID: ${raffleId}</p>
+              <span class="inline-flex mt-2 px-3 py-1 rounded-full border text-xs font-bold ${statusClass}">
+                ${statusLabel}
+              </span>
 
               ${ownerBlock}
 
