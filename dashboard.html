@@ -124,6 +124,147 @@
             </div>
 
             <div id="schoolsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+
+            <div id="createSchoolBox" class="mt-8 border-t border-lavLight pt-6 hidden">
+              <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div class="lg:w-1/3">
+                  <p class="text-xs uppercase tracking-[0.25em] text-lavDark/50 font-bold">
+                    Nuevo plantel
+                  </p>
+
+                  <h3 class="font-heading text-2xl text-lavDark font-bold mt-1">
+                    Crear colegio o curso
+                  </h3>
+
+                  <p class="text-sm text-lavDark/60 mt-2">
+                    Este plantel tendrá su propia marca, administradores, rifas, tickets y sorteos.
+                  </p>
+                </div>
+
+                <div class="lg:w-2/3 grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Nombre del plantel
+                    </label>
+                    <input
+                      id="newSchoolNameInput"
+                      type="text"
+                      placeholder="Ej: Colegio San José"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      ID del plantel
+                    </label>
+                    <input
+                      id="newSchoolSlugInput"
+                      type="text"
+                      placeholder="Ej: colegio-san-jose"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Correo de contacto
+                    </label>
+                    <input
+                      id="newSchoolEmailInput"
+                      type="email"
+                      placeholder="contacto@colegio.cl"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Teléfono / WhatsApp
+                    </label>
+                    <input
+                      id="newSchoolPhoneInput"
+                      type="text"
+                      placeholder="569..."
+                      class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Sitio web
+                    </label>
+                    <input
+                      id="newSchoolWebsiteInput"
+                      type="text"
+                      placeholder="https://..."
+                      class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Plan
+                    </label>
+                    <select
+                      id="newSchoolPlanInput"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                    >
+                      <option value="demo">Demo</option>
+                      <option value="campaña">Por campaña</option>
+                      <option value="mensual">Mensual</option>
+                      <option value="anual">Anual</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Color principal
+                    </label>
+                    <input
+                      id="newSchoolPrimaryColorInput"
+                      type="color"
+                      value="#B5A7CB"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-2 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Color secundario
+                    </label>
+                    <input
+                      id="newSchoolSecondaryColorInput"
+                      type="color"
+                      value="#F8DCC0"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-2 bg-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label class="block text-sm font-bold text-lavDark mb-2">
+                      Color acento
+                    </label>
+                    <input
+                      id="newSchoolAccentColorInput"
+                      type="color"
+                      value="#2F9B84"
+                      class="w-full h-12 rounded-2xl border border-lavLight px-2 bg-white"
+                    />
+                  </div>
+
+                  <div class="flex items-end">
+                    <button
+                      id="createSchoolBtn"
+                      type="button"
+                      class="w-full h-12 rounded-2xl bg-lavender text-white font-bold hover:bg-lavDark transition"
+                    >
+                      Crear plantel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
