@@ -1776,6 +1776,12 @@
         });
       }
 
+      if (schoolSelect) {
+        schoolSelect.addEventListener('change', () => {
+          setActiveSchool(schoolSelect.value);
+        });
+      }
+
       onAuthStateChanged(auth, async (user) => {
         try {
           if (!user) {
