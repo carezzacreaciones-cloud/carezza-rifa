@@ -1385,6 +1385,28 @@
       });
     }
 
+    function slugifySchoolName(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    }
+
+    function clearCreateSchoolForm() {
+      if (newSchoolNameInput) newSchoolNameInput.value = '';
+      if (newSchoolSlugInput) newSchoolSlugInput.value = '';
+      if (newSchoolEmailInput) newSchoolEmailInput.value = '';
+      if (newSchoolPhoneInput) newSchoolPhoneInput.value = '';
+      if (newSchoolWebsiteInput) newSchoolWebsiteInput.value = '';
+      if (newSchoolPlanInput) newSchoolPlanInput.value = 'demo';
+      if (newSchoolPrimaryColorInput) newSchoolPrimaryColorInput.value = '#B5A7CB';
+      if (newSchoolSecondaryColorInput) newSchoolSecondaryColorInput.value = '#F8DCC0';
+      if (newSchoolAccentColorInput) newSchoolAccentColorInput.value = '#2F9B84';
+    }
+
     function isGlobalSuperAdmin() {
       return currentProfile?.role === 'global_superadmin' || currentProfile?.role === 'superadmin';
     }
