@@ -456,6 +456,12 @@
     let unsubscribeBranding = null;
     let allUsersCache = [];
 
+    const schoolsPanel = document.getElementById('schoolsPanel');
+    const schoolSelect = document.getElementById('schoolSelect');
+    const activeSchoolName = document.getElementById('activeSchoolName');
+    const activeSchoolInfo = document.getElementById('activeSchoolInfo');
+    const schoolsList = document.getElementById('schoolsList');
+
     function showStatus(message, isError = false) {
       const box = document.getElementById('statusBox');
       if (!box) return;
