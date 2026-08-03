@@ -301,16 +301,8 @@
             />
           </div>
 
-          <div id="ownerSelectContainer" class="hidden">
-            <select
-              id="raffleOwnerSelect"
-              class="w-full px-4 py-3 rounded-2xl border border-lavLight focus:outline-none focus:ring-2 focus:ring-lavender/40"
-            >
-              <option value="">Seleccionar usuario...</option>
-            </select>
-          </div>
-
           <button
+            id="createRaffleBtn"          <button
             id="createRaffleBtn"
             class="h-12 px-5 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
           >
@@ -348,198 +340,6 @@
         </div>
       </section>
 
-      <!-- Usuarios -->
-      <section id="usersSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <h2 class="font-heading text-3xl text-lavDark font-bold">Usuarios del sistema</h2>
-          <span id="usersCountBox" class="text-sm text-lavDark/60">0 usuarios</span>
-        </div>
-
-        <div id="usersList" class="grid grid-cols-1 gap-4">
-          <p class="text-lavDark/50">No hay usuarios para mostrar.</p>
-        </div>
-      </section>
-
-      <!-- Branding -->
-      <section id="brandingSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
-        <h2 class="font-heading text-3xl text-lavDark font-bold mb-6">🎨 Personalización de Marca</h2>
-
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-          <!-- Formulario -->
-          <div class="space-y-4">
-
-            <!-- Datos del Establecimiento -->
-            <div class="rounded-2xl bg-lavLight/20 p-4">
-              <label class="text-sm font-semibold text-lavDark/80 uppercase tracking-wide block mb-3">
-                📍 Datos del Establecimiento
-              </label>
-
-              <div class="space-y-3">
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Nombre del Colegio
-                  </label>
-                  <input
-                    id="schoolName"
-                    type="text"
-                    placeholder="Ej: Colegio San José"
-                    class="w-full px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                  />
-                </div>
-
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Página Web
-                  </label>
-                  <input
-                    id="schoolWebsite"
-                    type="url"
-                    placeholder="https://www.ejemplo.com"
-                    class="w-full px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                  />
-                </div>
-
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Correo Electrónico
-                  </label>
-                  <input
-                    id="schoolEmail"
-                    type="email"
-                    placeholder="contacto@colegio.com"
-                    class="w-full px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                  />
-                </div>
-
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Teléfono
-                  </label>
-                  <input
-                    id="schoolPhone"
-                    type="tel"
-                    placeholder="+56 9 1234 5678"
-                    class="w-full px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Colores -->
-            <div class="rounded-2xl bg-lavLight/20 p-4">
-              <label class="text-sm font-semibold text-lavDark/80 uppercase tracking-wide block mb-3">
-                🎨 Colores Personalizados
-              </label>
-
-              <div class="space-y-3">
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Color Primario
-                  </label>
-                  <div class="flex gap-2 items-center">
-                    <input
-                      id="colorPrimary"
-                      type="color"
-                      value="#b5a7cb"
-                      class="w-12 h-10 rounded-lg border border-lavLight cursor-pointer"
-                    />
-                    <input
-                      id="colorPrimaryText"
-                      type="text"
-                      value="#b5a7cb"
-                      class="flex-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Color Secundario
-                  </label>
-                  <div class="flex gap-2 items-center">
-                    <input
-                      id="colorSecondary"
-                      type="color"
-                      value="#f8dcc0"
-                      class="w-12 h-10 rounded-lg border border-lavLight cursor-pointer"
-                    />
-                    <input
-                      id="colorSecondaryText"
-                      type="text"
-                      value="#f8dcc0"
-                      class="flex-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label class="text-xs font-semibold text-lavDark/60 uppercase tracking-wide block mb-2">
-                    Color Acentuado
-                  </label>
-                  <div class="flex gap-2 items-center">
-                    <input
-                      id="colorAccent"
-                      type="color"
-                      value="#8a7aa6"
-                      class="w-12 h-10 rounded-lg border border-lavLight cursor-pointer"
-                    />
-                    <input
-                      id="colorAccentText"
-                      type="text"
-                      value="#8a7aa6"
-                      class="flex-1 px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Botones -->
-            <div class="flex flex-col sm:flex-row gap-3">
-              <button
-                onclick="saveBranding()"
-                class="flex-1 px-4 py-3 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition"
-              >
-                💾 Guardar Cambios
-              </button>
-
-              <button
-                onclick="resetBranding()"
-                class="flex-1 px-4 py-3 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
-              >
-                ↺ Restaurar
-              </button>
-            </div>
-          </div>
-
-          <!-- Vista Previa -->
-          <div class="rounded-2xl bg-lavLight/10 p-6 flex flex-col">
-            <h3 class="text-sm font-semibold text-lavDark/70 uppercase mb-4">Vista Previa</h3>
-
-            <div
-              id="brandingPreview"
-              class="flex-1 rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-4"
-              style="background: linear-gradient(135deg, #fdf0e4 0%, #ffffff 40%, #e8e2f0 100%)"
-            >
-              <div>
-                <p id="previewSchoolName" class="font-heading text-xl font-bold text-lavDark">Mi Colegio</p>
-                <div id="previewSchoolInfo" class="text-xs text-lavDark/60 mt-2 space-y-1"></div>
-              </div>
-
-              <h2 class="font-heading text-2xl font-bold" style="color: #b5a7cb">Carezza Rifa</h2>
-
-              <div class="flex gap-2 mt-4">
-                <div class="preview-color-1 w-8 h-8 rounded-full" style="background-color: #b5a7cb"></div>
-                <div class="preview-color-2 w-8 h-8 rounded-full" style="background-color: #f8dcc0"></div>
-                <div class="preview-color-3 w-8 h-8 rounded-full" style="background-color: #8a7aa6"></div>
-              </div>
-
-              <p class="text-xs text-lavDark/50 mt-2">Los cambios se ven aquí en tiempo real</p>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   </main>
 
@@ -596,9 +396,7 @@
     let currentSchoolId = null;
     let currentSchoolData = null;
     let availableSchools = [];
-    let unsubscribeOwnRaffles = null;
-    let unsubscribeBranding = null;
-    let allUsersCache = [];
+    let unsubscribeSchoolRaffles = null;
 
     const schoolsPanel = document.getElementById('schoolsPanel');
     const schoolSelect = document.getElementById('schoolSelect');
@@ -660,28 +458,28 @@
       return doc(db, 'users', userId);
     }
 
-    function rafflesColRef(userId = currentUser.uid) {
-      return collection(db, 'users', userId, 'raffles');
+    function schoolRafflesColRef(schoolId = currentSchoolId) {
+      if (!schoolId) throw new Error('No hay un plantel activo.');
+      return collection(db, 'schools', schoolId, 'raffles');
     }
 
-    function raffleDocRef(raffleId, userId = currentUser.uid) {
-      return doc(db, 'users', userId, 'raffles', raffleId);
+    function schoolRaffleDocRef(raffleId, schoolId = currentSchoolId) {
+      if (!schoolId) throw new Error('No hay un plantel activo.');
+      return doc(db, 'schools', schoolId, 'raffles', raffleId);
     }
 
-    function raffleConfigRef(raffleId, userId = currentUser.uid) {
-      return doc(db, 'users', userId, 'raffles', raffleId, 'meta', 'config');
+    function schoolRaffleConfigRef(raffleId, schoolId = currentSchoolId) {
+      if (!schoolId) throw new Error('No hay un plantel activo.');
+      return doc(db, 'schools', schoolId, 'raffles', raffleId, 'meta', 'config');
     }
 
-    function raffleTicketsColRef(raffleId, userId = currentUser.uid) {
-      return collection(db, 'users', userId, 'raffles', raffleId, 'tickets');
+    function schoolRaffleTicketsColRef(raffleId, schoolId = currentSchoolId) {
+      if (!schoolId) throw new Error('No hay un plantel activo.');
+      return collection(db, 'schools', schoolId, 'raffles', raffleId, 'tickets');
     }
 
     function publicRaffleRef(shareId) {
       return doc(db, 'public_raffles', shareId);
-    }
-
-    function brandingRef() {
-      return doc(db, 'school-branding', 'default');
     }
 
     function hexToRgba(hex, alpha = 1) {
@@ -747,9 +545,9 @@
 
     function applySchoolInfo(branding = {}) {
       const name = branding.school_name || '';
-      const website = branding.school_website || '';
-      const email = branding.school_email || '';
-      const phone = branding.school_phone || '';
+      const website = branding.website || '';
+      const email = branding.email || '';
+      const phone = branding.phone || '';
 
       const box = document.getElementById('schoolInfoBox');
       const nameEl = document.getElementById('schoolInfoName');
@@ -797,184 +595,11 @@
       }
     }
 
-    function listenBranding() {
-      if (unsubscribeBranding) unsubscribeBranding();
-
-      unsubscribeBranding = onSnapshot(brandingRef(), (snap) => {
-        const data = snap.exists() ? snap.data() : DEFAULT_BRANDING;
-
-        applyBranding(data);
-
-        if (isSuperAdmin()) {
-          loadBrandingToForm(data);
-        }
-      }, (error) => {
-        console.error('Error cargando branding:', error);
-        applyBranding(DEFAULT_BRANDING);
-      });
-    }
-
-    function loadBrandingToForm(data = {}) {
-      const branding = {
-        ...DEFAULT_BRANDING,
-        ...data
-      };
-
-      const schoolName = document.getElementById('schoolName');
-      const schoolWebsite = document.getElementById('schoolWebsite');
-      const schoolEmail = document.getElementById('schoolEmail');
-      const schoolPhone = document.getElementById('schoolPhone');
-
-      const colorPrimary = document.getElementById('colorPrimary');
-      const colorPrimaryText = document.getElementById('colorPrimaryText');
-      const colorSecondary = document.getElementById('colorSecondary');
-      const colorSecondaryText = document.getElementById('colorSecondaryText');
-      const colorAccent = document.getElementById('colorAccent');
-      const colorAccentText = document.getElementById('colorAccentText');
-
-      if (schoolName) schoolName.value = branding.school_name || '';
-      if (schoolWebsite) schoolWebsite.value = branding.school_website || '';
-      if (schoolEmail) schoolEmail.value = branding.school_email || '';
-      if (schoolPhone) schoolPhone.value = branding.school_phone || '';
-
-      if (colorPrimary) colorPrimary.value = branding.primary_color || DEFAULT_BRANDING.primary_color;
-      if (colorPrimaryText) colorPrimaryText.value = branding.primary_color || DEFAULT_BRANDING.primary_color;
-
-      if (colorSecondary) colorSecondary.value = branding.secondary_color || DEFAULT_BRANDING.secondary_color;
-      if (colorSecondaryText) colorSecondaryText.value = branding.secondary_color || DEFAULT_BRANDING.secondary_color;
-
-      if (colorAccent) colorAccent.value = branding.accent_color || DEFAULT_BRANDING.accent_color;
-      if (colorAccentText) colorAccentText.value = branding.accent_color || DEFAULT_BRANDING.accent_color;
-
-      updateBrandingPreview();
-    }
-
-    function updateBrandingPreview() {
-      const schoolName = document.getElementById('schoolName')?.value || 'Mi Colegio';
-      const schoolWebsite = document.getElementById('schoolWebsite')?.value || '';
-      const schoolEmail = document.getElementById('schoolEmail')?.value || '';
-      const schoolPhone = document.getElementById('schoolPhone')?.value || '';
-
-      const primary = document.getElementById('colorPrimary')?.value || DEFAULT_BRANDING.primary_color;
-      const secondary = document.getElementById('colorSecondary')?.value || DEFAULT_BRANDING.secondary_color;
-      const accent = document.getElementById('colorAccent')?.value || DEFAULT_BRANDING.accent_color;
-
-      const previewSchoolName = document.getElementById('previewSchoolName');
-      const infoDiv = document.getElementById('previewSchoolInfo');
-      const preview = document.getElementById('brandingPreview');
-
-      if (previewSchoolName) {
-        previewSchoolName.textContent = schoolName;
-        previewSchoolName.style.color = accent;
-      }
-
-      if (infoDiv) {
-        infoDiv.innerHTML = '';
-        if (schoolWebsite) infoDiv.innerHTML += `<div>🌐 ${schoolWebsite}</div>`;
-        if (schoolEmail) infoDiv.innerHTML += `<div>📧 ${schoolEmail}</div>`;
-        if (schoolPhone) infoDiv.innerHTML += `<div>📱 ${schoolPhone}</div>`;
-      }
-
-      if (preview) {
-        preview.style.background = `linear-gradient(135deg, ${secondary}80 0%, #ffffff 40%, ${primary}60 100%)`;
-
-        const colorDots = preview.querySelectorAll('.w-8');
-        if (colorDots[0]) colorDots[0].style.backgroundColor = primary;
-        if (colorDots[1]) colorDots[1].style.backgroundColor = secondary;
-        if (colorDots[2]) colorDots[2].style.backgroundColor = accent;
-
-        const title = preview.querySelector('h2');
-        if (title) title.style.color = primary;
-      }
-    }
-
-    async function saveBranding() {
-      if (!isSuperAdmin()) {
-        showStatus('No tienes permisos para editar la marca.', true);
-        return;
-      }
-
-      try {
-        const schoolName = document.getElementById('schoolName').value.trim();
-        const schoolWebsite = document.getElementById('schoolWebsite').value.trim();
-        const schoolEmail = document.getElementById('schoolEmail').value.trim();
-        const schoolPhone = document.getElementById('schoolPhone').value.trim();
-
-        const primary = document.getElementById('colorPrimary').value;
-        const secondary = document.getElementById('colorSecondary').value;
-        const accent = document.getElementById('colorAccent').value;
-
-        const brandingData = {
-          school_name: schoolName,
-          school_website: schoolWebsite,
-          school_email: schoolEmail,
-          school_phone: schoolPhone,
-          primary_color: primary,
-          secondary_color: secondary,
-          accent_color: accent,
-          updatedAt: serverTimestamp()
-        };
-
-        await setDoc(brandingRef(), brandingData, { merge: true });
-
-        applyBranding(brandingData);
-        updateBrandingPreview();
-
-        showStatus('✅ Datos de marca guardados correctamente.');
-      } catch (error) {
-        console.error('Error guardando branding:', error);
-        showStatus('Error al guardar los datos de marca.', true);
-      }
-    }
-
-    window.saveBranding = saveBranding;
-
-    function resetBranding() {
-      if (!isSuperAdmin()) {
-        showStatus('No tienes permisos para restaurar la marca.', true);
-        return;
-      }
-
-      const schoolName = document.getElementById('schoolName');
-      const schoolWebsite = document.getElementById('schoolWebsite');
-      const schoolEmail = document.getElementById('schoolEmail');
-      const schoolPhone = document.getElementById('schoolPhone');
-
-      const colorPrimary = document.getElementById('colorPrimary');
-      const colorPrimaryText = document.getElementById('colorPrimaryText');
-      const colorSecondary = document.getElementById('colorSecondary');
-      const colorSecondaryText = document.getElementById('colorSecondaryText');
-      const colorAccent = document.getElementById('colorAccent');
-      const colorAccentText = document.getElementById('colorAccentText');
-
-      if (schoolName) schoolName.value = '';
-      if (schoolWebsite) schoolWebsite.value = '';
-      if (schoolEmail) schoolEmail.value = '';
-      if (schoolPhone) schoolPhone.value = '';
-
-      if (colorPrimary) colorPrimary.value = DEFAULT_BRANDING.primary_color;
-      if (colorPrimaryText) colorPrimaryText.value = DEFAULT_BRANDING.primary_color;
-
-      if (colorSecondary) colorSecondary.value = DEFAULT_BRANDING.secondary_color;
-      if (colorSecondaryText) colorSecondaryText.value = DEFAULT_BRANDING.secondary_color;
-
-      if (colorAccent) colorAccent.value = DEFAULT_BRANDING.accent_color;
-      if (colorAccentText) colorAccentText.value = DEFAULT_BRANDING.accent_color;
-
-      updateBrandingPreview();
-    }
-
-    window.resetBranding = resetBranding;
-
     function normalizeRaffleRange(startValue, endValue) {
       const start = Math.max(0, Math.min(9999, parseInt(startValue, 10)));
       const end = Math.max(0, Math.min(9999, parseInt(endValue, 10)));
 
-      if (!Number.isInteger(start) || !Number.isInteger(end)) {
-        return null;
-      }
-
-      if (end < start) {
+      if (!Number.isInteger(start) || !Number.isInteger(end) || end < start) {
         return null;
       }
 
@@ -985,10 +610,9 @@
       };
     }
 
-    async function ensureRootRaffleDoc(raffleId, raffleName, shareId, range, ownerUid = null) {
-      const uid = ownerUid || currentUser.uid;
-
-      await setDoc(raffleDocRef(raffleId, uid), {
+    async function ensureRootRaffleDoc(raffleId, raffleName, shareId, range) {
+      await setDoc(schoolRaffleDocRef(raffleId), {
+        school_id: currentSchoolId,
         raffle_id: raffleId,
         raffle_name: raffleName,
         public_share_id: shareId,
@@ -1006,11 +630,9 @@
       }, { merge: true });
     }
 
-    async function ensurePublicRaffleDoc(shareId, raffleId, raffleName, ownerUid = null) {
-      const uid = ownerUid || currentUser.uid;
-
+    async function ensurePublicRaffleDoc(shareId, raffleId, raffleName) {
       await setDoc(publicRaffleRef(shareId), {
-        owner_uid: uid,
+        school_id: currentSchoolId,
         raffle_id: raffleId,
         raffle_name: raffleName,
         created_by_uid: currentUser.uid,
@@ -1021,13 +643,14 @@
       }, { merge: true });
     }
 
-    async function ensureRaffleConfig(raffleId, raffleName, range, ownerUid = null) {
-      const uid = ownerUid || currentUser.uid;
-      const snap = await getDoc(raffleConfigRef(raffleId, uid));
+    async function ensureRaffleConfig(raffleId, raffleName, range) {
+      const configRef = schoolRaffleConfigRef(raffleId);
+      const snap = await getDoc(configRef);
 
       if (!snap.exists()) {
-        await setDoc(raffleConfigRef(raffleId, uid), {
+        await setDoc(configRef, {
           ...defaultConfig,
+          school_id: currentSchoolId,
           raffle_name: raffleName || defaultConfig.raffle_name,
           number_start: String(range.start),
           number_end: String(range.end),
@@ -1042,11 +665,15 @@
     async function createRaffle() {
       clearStatus();
 
+      if (!currentSchoolId) {
+        showStatus('Selecciona un plantel antes de crear una rifa.', true);
+        return;
+      }
+
       const nameInput = document.getElementById('raffleNameInput');
       const slugInput = document.getElementById('raffleSlugInput');
       const startInput = document.getElementById('raffleStartInput');
       const endInput = document.getElementById('raffleEndInput');
-      const ownerSelect = document.getElementById('raffleOwnerSelect');
 
       const raffleName = nameInput.value.trim();
       let raffleId = slugify(slugInput.value.trim());
@@ -1069,40 +696,37 @@
         return;
       }
 
-      let targetUserId = currentUser.uid;
-
-      if (isSuperAdmin()) {
-        targetUserId = ownerSelect.value || currentUser.uid;
-      }
-
       try {
         const shareId = generateShareId();
 
-        await ensureRootRaffleDoc(raffleId, raffleName, shareId, range, targetUserId);
+        await ensureRootRaffleDoc(raffleId, raffleName, shareId, range);
 
         try {
-          await ensurePublicRaffleDoc(shareId, raffleId, raffleName, targetUserId);
+          await ensurePublicRaffleDoc(shareId, raffleId, raffleName);
         } catch (publicError) {
-          console.warn('No se pudo crear el índice público de la rifa. El enlace cliente usará owner y raffle como respaldo.', publicError);
+          console.warn('No se pudo crear el índice público de la rifa.', publicError);
         }
 
-        await ensureRaffleConfig(raffleId, raffleName, range, targetUserId);
+        await ensureRaffleConfig(raffleId, raffleName, range);
 
         nameInput.value = '';
         slugInput.value = '';
         startInput.value = '1';
         endInput.value = '100';
-        if (ownerSelect) ownerSelect.value = '';
 
         showStatus('Rifa creada correctamente.');
-        await refreshDashboard();
       } catch (error) {
         console.error('Error creando rifa:', error);
         showStatus('Error al crear la rifa.', true);
       }
     }
 
-    async function deleteRaffle(ownerUid, raffleId, raffleName, shareId) {
+    async function deleteRaffle(raffleId, raffleName, shareId) {
+      if (!currentSchoolId) {
+        showStatus('No hay un plantel activo.', true);
+        return;
+      }
+
       const ok = window.confirm(
         `¿Seguro que quieres borrar la rifa "${raffleName}"? Esta acción eliminará tickets, configuración y la rifa del panel.`
       );
@@ -1110,7 +734,7 @@
       if (!ok) return;
 
       try {
-        const ticketsSnap = await getDocs(raffleTicketsColRef(raffleId, ownerUid));
+        const ticketsSnap = await getDocs(schoolRaffleTicketsColRef(raffleId));
 
         if (!ticketsSnap.empty) {
           const docs = ticketsSnap.docs;
@@ -1122,15 +746,14 @@
           }
         }
 
-        await deleteDoc(raffleConfigRef(raffleId, ownerUid));
-        await deleteDoc(raffleDocRef(raffleId, ownerUid));
+        await deleteDoc(schoolRaffleConfigRef(raffleId));
+        await deleteDoc(schoolRaffleDocRef(raffleId));
 
         if (shareId) {
           await deleteDoc(publicRaffleRef(shareId));
         }
 
         showStatus(`Rifa "${raffleName}" eliminada correctamente.`);
-        await refreshDashboard();
       } catch (error) {
         console.error('Error eliminando rifa:', error);
         showStatus('Error al eliminar la rifa.', true);
@@ -1155,9 +778,6 @@
       items.forEach((item) => {
         const raffleId = item.id;
         const data = item.data || {};
-        const ownerUid = item.owner_uid;
-        const ownerEmail = item.owner_email || '';
-        const ownerName = item.owner_name || '';
         const displayName = data.raffle_name || raffleId;
         const prize = data.prize || 'Sin premio';
         const price = data.price || '0';
@@ -1183,23 +803,11 @@
 
         const statusLabel = statusLabels[raffleStatus] || 'Activa';
         const statusClass = statusClasses[raffleStatus] || statusClasses.active;
-
-        const adminUrl = isSuperAdmin()
-          ? `admin.html?raffle=${encodeURIComponent(raffleId)}&owner=${encodeURIComponent(ownerUid)}`
-          : `admin.html?raffle=${encodeURIComponent(raffleId)}`;
-
+        const schoolParam = encodeURIComponent(currentSchoolId);
+        const raffleParam = encodeURIComponent(raffleId);
+        const adminUrl = `admin.html?school=${schoolParam}&raffle=${raffleParam}`;
         const clientUrl = shareId
-          ? `cliente.html?share=${encodeURIComponent(shareId)}&owner=${encodeURIComponent(ownerUid)}&raffle=${encodeURIComponent(raffleId)}`
-          : '';
-
-        const ownerBlock = isSuperAdmin()
-          ? `
-            <div class="mt-3 rounded-xl bg-lavLight/40 px-3 py-2">
-              <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Propietario</p>
-              <p class="text-sm font-semibold text-lavDark">${ownerName || 'Sin nombre'}</p>
-              <p class="text-xs text-lavDark/60 break-all">${ownerEmail || ownerUid}</p>
-            </div>
-          `
+          ? `cliente.html?share=${encodeURIComponent(shareId)}&school=${schoolParam}&raffle=${raffleParam}`
           : '';
 
         const card = document.createElement('div');
@@ -1214,24 +822,19 @@
                 ${statusLabel}
               </span>
 
-              ${ownerBlock}
-
               <div class="mt-3 grid grid-cols-1 sm:grid-cols-4 gap-2">
                 <div class="rounded-xl bg-peachLight px-3 py-2">
                   <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Premio</p>
                   <p class="text-sm font-semibold text-lavDark">${prize}</p>
                 </div>
-
                 <div class="rounded-xl bg-peachLight px-3 py-2">
                   <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Precio</p>
                   <p class="text-sm font-semibold text-lavDark">$${Number(price || 0).toLocaleString('es-CL')}</p>
                 </div>
-
                 <div class="rounded-xl bg-peachLight px-3 py-2">
                   <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Cantidad</p>
                   <p class="text-sm font-semibold text-lavDark">${totalNumbers}</p>
                 </div>
-
                 <div class="rounded-xl bg-peachLight px-3 py-2">
                   <p class="text-[11px] uppercase tracking-wide text-lavDark/60 font-semibold">Rango</p>
                   <p class="text-sm font-semibold text-lavDark">#${numberStart} a #${numberEnd}</p>
@@ -1240,55 +843,23 @@
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 w-full xl:w-auto">
-              <a
-                href="${adminUrl}"
-                class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center"
-              >
+              <a href="${adminUrl}" class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center">
                 Abrir admin
               </a>
 
-              ${
-                clientUrl
-                  ? `
-                    <a
-                      href="${clientUrl}"
-                      target="_blank"
-                      class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center"
-                    >
-                      Abrir cliente
-                    </a>
+              ${clientUrl ? `
+                <a href="${clientUrl}" target="_blank" class="h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition flex items-center justify-center">
+                  Abrir cliente
+                </a>
+                <button class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition" data-url="${clientUrl}">
+                  Copiar link
+                </button>
+              ` : `
+                <button class="h-11 px-4 rounded-2xl bg-gray-100 text-gray-400 border border-gray-200 font-semibold cursor-not-allowed" disabled>Sin cliente</button>
+                <button class="h-11 px-4 rounded-2xl bg-gray-100 text-gray-400 border border-gray-200 font-semibold cursor-not-allowed" disabled>Sin link</button>
+              `}
 
-                    <button
-                      class="copy-client-btn h-11 px-4 rounded-2xl bg-white text-lavDark border border-lavLight font-semibold hover:bg-lavLight/30 transition"
-                      data-url="${clientUrl}"
-                    >
-                      Copiar link
-                    </button>
-                  `
-                  : `
-                    <button
-                      class="h-11 px-4 rounded-2xl bg-gray-100 text-gray-400 border border-gray-200 font-semibold cursor-not-allowed"
-                      disabled
-                    >
-                      Sin cliente
-                    </button>
-
-                    <button
-                      class="h-11 px-4 rounded-2xl bg-gray-100 text-gray-400 border border-gray-200 font-semibold cursor-not-allowed"
-                      disabled
-                    >
-                      Sin link
-                    </button>
-                  `
-              }
-
-              <button
-                class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition"
-                data-owner="${ownerUid}"
-                data-id="${raffleId}"
-                data-name="${displayName}"
-                data-share="${shareId}"
-              >
+              <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-id="${raffleId}" data-name="${displayName}" data-share="${shareId}">
                 Borrar
               </button>
             </div>
@@ -1296,7 +867,6 @@
         `;
 
         const copyBtn = card.querySelector('.copy-client-btn');
-
         if (copyBtn) {
           copyBtn.addEventListener('click', async (event) => {
             const url = event.currentTarget.dataset.url;
@@ -1306,71 +876,30 @@
         }
 
         const deleteBtn = card.querySelector('.delete-raffle-btn');
-
         if (deleteBtn) {
           deleteBtn.addEventListener('click', (event) => {
             const btn = event.currentTarget;
-            deleteRaffle(btn.dataset.owner, btn.dataset.id, btn.dataset.name, btn.dataset.share);
+            deleteRaffle(btn.dataset.id, btn.dataset.name, btn.dataset.share);
           });
         }
 
         list.appendChild(card);
       });
-
-      applyBrandingFromCurrentCss();
     }
 
-    function applyBrandingFromCurrentCss() {
-      const primary = getComputedStyle(document.documentElement).getPropertyValue('--brand-primary').trim() || DEFAULT_BRANDING.primary_color;
-      const secondary = getComputedStyle(document.documentElement).getPropertyValue('--brand-secondary').trim() || DEFAULT_BRANDING.secondary_color;
-      const accent = getComputedStyle(document.documentElement).getPropertyValue('--brand-accent').trim() || DEFAULT_BRANDING.accent_color;
+    function startSchoolRafflesListener() {
+      if (unsubscribeSchoolRaffles) unsubscribeSchoolRaffles();
 
-      applyBranding({
-        primary_color: primary,
-        secondary_color: secondary,
-        accent_color: accent
-      });
-    }
-
-    async function fetchAllRafflesForSuperAdmin() {
-      const usersSnap = await getDocs(collection(db, 'users'));
-      const allRaffles = [];
-
-      for (const userDoc of usersSnap.docs) {
-        const userData = userDoc.data() || {};
-        const rafflesSnap = await getDocs(collection(db, 'users', userDoc.id, 'raffles'));
-
-        rafflesSnap.forEach((raffleDoc) => {
-          allRaffles.push({
-            id: raffleDoc.id,
-            data: raffleDoc.data(),
-            owner_uid: userDoc.id,
-            owner_email: userData.email || '',
-            owner_name: userData.display_name || ''
-          });
-        });
+      if (!currentSchoolId) {
+        renderRaffles([]);
+        return;
       }
 
-      allRaffles.sort((a, b) => {
-        const av = a.data.raffle_name || a.id;
-        const bv = b.data.raffle_name || b.id;
-        return av.localeCompare(bv, 'es');
-      });
-
-      renderRaffles(allRaffles);
-    }
-
-    function startOwnRafflesListener() {
-      if (unsubscribeOwnRaffles) unsubscribeOwnRaffles();
-
-      unsubscribeOwnRaffles = onSnapshot(rafflesColRef(), (snapshot) => {
+      unsubscribeSchoolRaffles = onSnapshot(schoolRafflesColRef(), (snapshot) => {
         const docs = snapshot.docs
           .map((raffleDoc) => ({
             id: raffleDoc.id,
-            data: raffleDoc.data(),
-            owner_uid: currentUser.uid,
-            owner_email: currentProfile?.email || currentUser.email || '',
-            owner_name: currentProfile?.display_name || ''
+            data: raffleDoc.data()
           }))
           .sort((a, b) => {
             const av = a.data.raffle_name || a.id;
@@ -1380,8 +909,8 @@
 
         renderRaffles(docs);
       }, (error) => {
-        console.error('Error escuchando rifas:', error);
-        showStatus('Error cargando rifas.', true);
+        console.error('Error escuchando rifas del plantel:', error);
+        showStatus('Error cargando las rifas del plantel.', true);
       });
     }
 
@@ -1602,9 +1131,11 @@
 
       localStorage.setItem('carezza_active_school_id', currentSchoolId);
 
+      applyBranding(currentSchoolData);
       renderActiveSchool();
       renderSchoolOptions();
       renderSchoolsList();
+      refreshDashboard();
     }
 
     async function loadSchoolsForDashboard() {
@@ -1649,6 +1180,7 @@
           currentSchoolData = availableSchools[0].data;
         }
 
+        applyBranding(currentSchoolData || {});
         renderActiveSchool();
         renderSchoolOptions();
         renderSchoolsList();
@@ -1671,311 +1203,23 @@
     }
 
     async function refreshDashboard() {
-      if (isSuperAdmin()) {
-        await fetchAllRafflesForSuperAdmin();
-        await loadAllUsers();
-      } else {
-        startOwnRafflesListener();
-      }
-    }
-
-    async function loadAllUsers() {
-      if (!isSuperAdmin()) return;
-
-      try {
-        const usersSnap = await getDocs(collection(db, 'users'));
-
-        allUsersCache = usersSnap.docs.map((userDoc) => ({
-          uid: userDoc.id,
-          email: userDoc.data().email || '',
-          display_name: userDoc.data().display_name || '',
-          role: userDoc.data().role || 'admin',
-          active: userDoc.data().active !== false
-        }));
-
-        allUsersCache.sort((a, b) => {
-          const av = a.display_name || a.email || a.uid;
-          const bv = b.display_name || b.email || b.uid;
-          return av.localeCompare(bv, 'es');
-        });
-
-        updateOwnerSelect();
-        renderUsersList();
-      } catch (error) {
-        console.error('Error cargando usuarios:', error);
-        showStatus('Error cargando usuarios.', true);
-      }
-    }
-
-    function updateOwnerSelect() {
-      const select = document.getElementById('raffleOwnerSelect');
-
-      if (!select) return;
-
-      select.innerHTML = '';
-
-      const selfOption = document.createElement('option');
-      selfOption.value = currentUser.uid;
-      selfOption.textContent = `Mi cuenta (${currentProfile?.email || currentUser.email || currentUser.uid})`;
-      select.appendChild(selfOption);
-
-      allUsersCache
-        .filter((user) => user.uid !== currentUser.uid && user.role !== 'superadmin')
-        .forEach((user) => {
-          const option = document.createElement('option');
-          option.value = user.uid;
-          option.textContent = `${user.display_name || user.email} (${user.email})`;
-          select.appendChild(option);
-        });
-    }
-
-    async function updateUserRole(uid, newRole) {
-      if (!isSuperAdmin()) {
-        showStatus('No tienes permisos para cambiar roles.', true);
-        return;
-      }
-
-      if (!uid || !newRole) {
-        showStatus('Usuario o rol inválido.', true);
-        return;
-      }
-
-      const allowedRoles = ['superadmin', 'admin', 'cliente'];
-
-      if (!allowedRoles.includes(newRole)) {
-        showStatus('Rol no permitido.', true);
-        return;
-      }
-
-      if (uid === currentUser.uid && newRole !== 'superadmin') {
-        showStatus('No puedes quitarte a ti misma el rol de superadmin.', true);
-        return;
-      }
-
-      const ok = window.confirm(`¿Confirmas cambiar el rol de este usuario a "${newRole}"?`);
-
-      if (!ok) return;
-
-      try {
-        await setDoc(userProfileRef(uid), {
-          role: newRole,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        showStatus(`Rol actualizado correctamente a "${newRole}".`);
-        await loadAllUsers();
-      } catch (error) {
-        console.error('Error actualizando rol:', error);
-        showStatus('Error al actualizar el rol del usuario.', true);
-      }
-    }
-
-    window.updateUserRole = updateUserRole;
-
-    async function toggleUserActive(uid, currentActive) {
-      if (!isSuperAdmin()) {
-        showStatus('No tienes permisos para cambiar el estado de usuarios.', true);
-        return;
-      }
-
-      if (uid === currentUser.uid) {
-        showStatus('No puedes desactivar tu propia cuenta.', true);
-        return;
-      }
-
-      const ok = window.confirm(`¿Confirmas ${currentActive ? 'desactivar' : 'activar'} este usuario?`);
-
-      if (!ok) return;
-
-      try {
-        await setDoc(userProfileRef(uid), {
-          active: !currentActive,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-
-        showStatus(`Usuario ${currentActive ? 'desactivado' : 'activado'} correctamente.`);
-        await loadAllUsers();
-      } catch (error) {
-        console.error('Error cambiando estado:', error);
-        showStatus('Error al cambiar el estado del usuario.', true);
-      }
-    }
-
-    window.toggleUserActive = toggleUserActive;
-
-    function renderUsersList() {
-      const usersList = document.getElementById('usersList');
-      const usersCountBox = document.getElementById('usersCountBox');
-
-      if (!usersList || !usersCountBox) return;
-
-      if (allUsersCache.length === 0) {
-        usersList.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
-        usersCountBox.textContent = '0 usuarios';
-        return;
-      }
-
-      usersCountBox.textContent = `${allUsersCache.length} ${allUsersCache.length === 1 ? 'usuario' : 'usuarios'}`;
-
-      usersList.innerHTML = allUsersCache.map((user) => {
-        const displayName = user.display_name || 'Sin nombre';
-        const email = user.email || 'Sin correo';
-        const role = user.role || 'admin';
-        const active = user.active !== false;
-        const isCurrentUser = currentUser && currentUser.uid === user.uid;
-
-        return `
-          <div class="bg-lavLight/10 rounded-2xl p-4 border border-lavLight/30">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <p class="font-semibold text-lavDark">${displayName}</p>
-                <p class="text-xs text-lavDark/60 break-all">${email}</p>
-
-                <div class="mt-2 flex flex-wrap gap-2">
-                  <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                    role === 'superadmin'
-                      ? 'bg-red-100 text-red-700'
-                      : role === 'admin'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-emerald-100 text-emerald-700'
-                  }">
-                    ${role}
-                  </span>
-
-                  <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                    active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                  }">
-                    ${active ? 'activo' : 'inactivo'}
-                  </span>
-
-                  ${
-                    isCurrentUser
-                      ? '<span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-lavLight text-lavDark">tu cuenta</span>'
-                      : ''
-                  }
-                </div>
-              </div>
-
-              <div class="flex flex-col sm:flex-row gap-2 lg:items-center">
-                <select
-                  class="role-select px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
-                  data-uid="${user.uid}"
-                  ${isCurrentUser ? 'disabled' : ''}
-                >
-                  <option value="cliente" ${role === 'cliente' ? 'selected' : ''}>Cliente</option>
-                  <option value="admin" ${role === 'admin' ? 'selected' : ''}>Admin</option>
-                  <option value="superadmin" ${role === 'superadmin' ? 'selected' : ''}>Superadmin</option>
-                </select>
-
-                <button
-                  class="save-role-btn h-10 px-4 rounded-xl bg-lavender text-white font-semibold hover:bg-lavDark transition disabled:opacity-50 disabled:cursor-not-allowed"
-                  data-uid="${user.uid}"
-                  ${isCurrentUser ? 'disabled' : ''}
-                >
-                  Guardar rol
-                </button>
-
-                <button
-                  class="toggle-active-btn h-10 px-4 rounded-xl bg-white border font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                    active
-                      ? 'text-red-500 border-red-200 hover:bg-red-50'
-                      : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'
-                  }"
-                  data-uid="${user.uid}"
-                  data-active="${active}"
-                  ${isCurrentUser ? 'disabled' : ''}
-                >
-                  ${active ? 'Desactivar' : 'Activar'}
-                </button>
-              </div>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      document.querySelectorAll('.save-role-btn').forEach((button) => {
-        button.addEventListener('click', async (event) => {
-          const uid = event.currentTarget.dataset.uid;
-          const select = document.querySelector(`.role-select[data-uid="${uid}"]`);
-
-          if (!select) return;
-
-          await updateUserRole(uid, select.value);
-        });
-      });
-
-      document.querySelectorAll('.toggle-active-btn').forEach((button) => {
-        button.addEventListener('click', async (event) => {
-          const uid = event.currentTarget.dataset.uid;
-          const active = event.currentTarget.dataset.active === 'true';
-
-          await toggleUserActive(uid, active);
-        });
-      });
-
-      applyBrandingFromCurrentCss();
+      startSchoolRafflesListener();
     }
 
     function applyDashboardMode() {
       const pageTitle = document.getElementById('pageTitle');
       const pageSubtitle = document.getElementById('pageSubtitle');
       const listTitle = document.getElementById('listTitle');
-      const ownerSelectContainer = document.getElementById('ownerSelectContainer');
-      const usersSection = document.getElementById('usersSection');
-      const brandingSection = document.getElementById('brandingSection');
 
-      if (isSuperAdmin()) {
+      if (isGlobalSuperAdmin()) {
         if (pageTitle) pageTitle.textContent = 'Panel de Dirección';
-        if (pageSubtitle) pageSubtitle.textContent = 'Visualiza, crea y administra rifas, usuarios y marca';
-        if (listTitle) listTitle.textContent = 'Todas las rifas';
-        if (ownerSelectContainer) ownerSelectContainer.classList.remove('hidden');
-        if (usersSection) usersSection.classList.remove('hidden');
-        if (brandingSection) brandingSection.classList.remove('hidden');
+        if (pageSubtitle) pageSubtitle.textContent = 'Administra planteles y sus rifas';
       } else {
         if (pageTitle) pageTitle.textContent = 'Mis Rifas';
-        if (pageSubtitle) pageSubtitle.textContent = 'Crea, administra y comparte tus rifas';
-        if (listTitle) listTitle.textContent = 'Tus rifas';
-        if (ownerSelectContainer) ownerSelectContainer.classList.add('hidden');
-        if (usersSection) usersSection.classList.add('hidden');
-        if (brandingSection) brandingSection.classList.add('hidden');
+        if (pageSubtitle) pageSubtitle.textContent = 'Crea, administra y comparte las rifas de tu plantel';
       }
-    }
 
-    function setupBrandingEvents() {
-      const pairs = [
-        ['colorPrimary', 'colorPrimaryText'],
-        ['colorSecondary', 'colorSecondaryText'],
-        ['colorAccent', 'colorAccentText']
-      ];
-
-      pairs.forEach(([colorId, textId]) => {
-        const colorInput = document.getElementById(colorId);
-        const textInput = document.getElementById(textId);
-
-        if (colorInput && textInput) {
-          colorInput.addEventListener('change', (event) => {
-            textInput.value = event.target.value;
-            updateBrandingPreview();
-          });
-
-          textInput.addEventListener('change', (event) => {
-            const value = event.target.value.trim();
-
-            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-              colorInput.value = value;
-              updateBrandingPreview();
-            } else {
-              showStatus('El color debe tener formato hexadecimal. Ejemplo: #b5a7cb', true);
-              textInput.value = colorInput.value;
-            }
-          });
-        }
-      });
-
-      ['schoolName', 'schoolWebsite', 'schoolEmail', 'schoolPhone'].forEach((id) => {
-        const input = document.getElementById(id);
-        if (input) input.addEventListener('input', updateBrandingPreview);
-      });
+      if (listTitle) listTitle.textContent = 'Rifas del plantel';
     }
 
     async function loadCurrentProfile(user) {
@@ -2015,8 +1259,6 @@
       app = initializeApp(window.FIREBASE_CONFIG);
       auth = getAuth(app);
       db = getFirestore(app);
-
-      setupBrandingEvents();
 
       const createRaffleBtn = document.getElementById('createRaffleBtn');
       const logoutBtn = document.getElementById('logoutBtn');
@@ -2066,7 +1308,6 @@
 
           await loadCurrentProfile(user);
           await loadSchoolsForDashboard();
-          listenBranding();
           applyDashboardMode();
 
           const userBox = document.getElementById('userBox');
