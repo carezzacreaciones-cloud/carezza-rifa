@@ -1792,6 +1792,7 @@
           currentUser = user;
 
           await loadCurrentProfile(user);
+          await loadSchoolsForDashboard();
           listenBranding();
           applyDashboardMode();
 
