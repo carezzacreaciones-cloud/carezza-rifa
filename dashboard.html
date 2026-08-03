@@ -1232,6 +1232,188 @@
       });
     }
 
+    function isGlobalSuperAdmin() {
+      return currentProfile?.role === 'global_superadmin' || currentProfile?.role === 'superadmin';
+    }
+
+    function schoolsColRef() {
+      return collection(db, 'schools');
+    }
+
+    function schoolDocRef(schoolId) {
+      return doc(db, 'schools', schoolId);
+    }
+
+    function getSchoolDisplayName(schoolId, data = {}) {
+      return data.school_name || data.name || schoolId || 'Plantel sin nombre';
+    }
+
+    function renderActiveSchool() {
+      if (!activeSchoolName || !activeSchoolInfo) return;
+
+      if (!currentSchoolId || !currentSchoolData) {
+        activeSchoolName.textContent = 'Selecciona un plantel';
+        activeSchoolInfo.textContent = 'Las rifas que crees quedarán asociadas a este colegio.';
+        return;
+      }
+
+      activeSchoolName.textContent = getSchoolDisplayName(currentSchoolId, currentSchoolData);
+
+      const plan = currentSchoolData.plan || 'sin plan';
+      const status = currentSchoolData.active === false ? 'inactivo' : 'activo';
+
+      activeSchoolInfo.textContent = `ID: ${currentSchoolId} · Plan: ${plan} · Estado: ${status}`;
+    }
+
+    function renderSchoolOptions() {
+      if (!schoolSelect) return;
+
+      if (!availableSchools.length) {
+        schoolSelect.innerHTML = '<option value="">No hay planteles disponibles</option>';
+        return;
+      }
+
+      schoolSelect.innerHTML = availableSchools.map((school) => {
+        const selected = school.id === currentSchoolId ? 'selected' : '';
+        const name = getSchoolDisplayName(school.id, school.data);
+
+        return `
+          <option value="${school.id}" ${selected}>
+            ${name}
+          </option>
+        `;
+      }).join('');
+    }
+
+    function renderSchoolsList() {
+      if (!schoolsList) return;
+
+      if (!availableSchools.length) {
+        schoolsList.innerHTML = `
+          <div class="col-span-full bg-peachLight/60 border border-lavLight rounded-3xl p-5 text-sm text-lavDark/70">
+            No hay planteles creados todavía.
+          </div>
+        `;
+        return;
+      }
+
+      schoolsList.innerHTML = availableSchools.map((school) => {
+        const data = school.data || {};
+        const name = getSchoolDisplayName(school.id, data);
+        const plan = data.plan || 'sin plan';
+        const active = data.active !== false;
+        const isSelected = school.id === currentSchoolId;
+
+        return `
+          <button
+            type="button"
+            data-school-card="${school.id}"
+            class="text-left rounded-3xl border p-5 transition bg-white hover:shadow-lg ${
+              isSelected ? 'border-lavender ring-2 ring-lavender/30' : 'border-lavLight'
+            }"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="font-heading text-xl font-bold text-lavDark">${name}</h3>
+                <p class="text-xs text-lavDark/50 mt-1">ID: ${school.id}</p>
+              </div>
+
+              <span class="text-xs font-bold px-3 py-1 rounded-full ${
+                active ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'
+              }">
+                ${active ? 'Activo' : 'Inactivo'}
+              </span>
+            </div>
+
+            <p class="text-sm text-lavDark/60 mt-3">
+              Plan: ${plan}
+            </p>
+          </button>
+        `;
+      }).join('');
+
+      document.querySelectorAll('[data-school-card]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const schoolId = button.dataset.schoolCard;
+          setActiveSchool(schoolId);
+        });
+      });
+    }
+
+    function setActiveSchool(schoolId) {
+      const selectedSchool = availableSchools.find((school) => school.id === schoolId);
+
+      if (!selectedSchool) return;
+
+      currentSchoolId = selectedSchool.id;
+      currentSchoolData = selectedSchool.data;
+
+      localStorage.setItem('carezza_active_school_id', currentSchoolId);
+
+      renderActiveSchool();
+      renderSchoolOptions();
+      renderSchoolsList();
+    }
+
+    async function loadSchoolsForDashboard() {
+      if (!schoolsPanel) return;
+
+      try {
+        schoolsPanel.classList.remove('hidden');
+
+        if (!isGlobalSuperAdmin()) {
+          schoolsList.innerHTML = `
+            <div class="col-span-full bg-amber-50 border border-amber-200 rounded-3xl p-5 text-sm text-amber-700">
+              Tu usuario todavía no tiene planteles cargados desde el dashboard. En esta primera etapa, la carga de planteles está habilitada para superadmin global.
+            </div>
+          `;
+
+          if (schoolSelect) {
+            schoolSelect.innerHTML = '<option value="">Sin planteles disponibles</option>';
+          }
+
+          return;
+        }
+
+        const schoolsSnap = await getDocs(schoolsColRef());
+
+        availableSchools = schoolsSnap.docs.map((schoolDoc) => ({
+          id: schoolDoc.id,
+          data: schoolDoc.data()
+        }));
+
+        const savedSchoolId = localStorage.getItem('carezza_active_school_id');
+
+        if (savedSchoolId && availableSchools.some((school) => school.id === savedSchoolId)) {
+          const savedSchool = availableSchools.find((school) => school.id === savedSchoolId);
+          currentSchoolId = savedSchool.id;
+          currentSchoolData = savedSchool.data;
+        } else if (availableSchools.length) {
+          currentSchoolId = availableSchools[0].id;
+          currentSchoolData = availableSchools[0].data;
+        }
+
+        renderActiveSchool();
+        renderSchoolOptions();
+        renderSchoolsList();
+
+      } catch (error) {
+        console.error(error);
+
+        if (schoolsList) {
+          schoolsList.innerHTML = `
+            <div class="col-span-full bg-red-50 border border-red-200 rounded-3xl p-5 text-sm text-red-700">
+              No se pudieron cargar los planteles. Revisa las reglas de Firestore o el rol del usuario.
+            </div>
+          `;
+        }
+
+        if (schoolSelect) {
+          schoolSelect.innerHTML = '<option value="">Error al cargar planteles</option>';
+        }
+      }
+    }
+
     async function refreshDashboard() {
       if (isSuperAdmin()) {
         await fetchAllRafflesForSuperAdmin();
