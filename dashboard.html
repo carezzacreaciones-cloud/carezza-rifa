@@ -92,6 +92,41 @@
           <div id="userBox" class="mt-4 inline-flex items-center gap-2 rounded-full bg-peachLight px-4 py-2 text-sm text-lavDark hidden"></div>
         </div>
 
+        <section id="schoolsPanel" class="max-w-6xl mx-auto px-4 mt-6 hidden">
+          <div class="bg-white/90 backdrop-blur rounded-[2rem] shadow-xl border border-lavLight p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <p class="text-xs uppercase tracking-[0.25em] text-lavDark/50 font-bold">
+                  Plantel activo
+                </p>
+
+                <h2 id="activeSchoolName" class="font-heading text-3xl text-lavDark font-bold mt-1">
+                  Selecciona un plantel
+                </h2>
+
+                <p id="activeSchoolInfo" class="text-sm text-lavDark/60 mt-1">
+                  Las rifas que crees quedarán asociadas a este colegio.
+                </p>
+              </div>
+
+              <div class="w-full lg:w-80">
+                <label class="block text-sm font-bold text-lavDark mb-2">
+                  Seleccionar plantel
+                </label>
+
+                <select
+                  id="schoolSelect"
+                  class="w-full h-12 rounded-2xl border border-lavLight px-4 bg-white text-lavDark focus:outline-none focus:ring-2 focus:ring-lavender"
+                >
+                  <option value="">Cargando planteles...</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="schoolsList" class="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6"></div>
+          </div>
+        </section>
+
         <div id="createSection" class="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mt-6">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <input
