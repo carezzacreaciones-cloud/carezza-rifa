@@ -1613,6 +1613,10 @@
       try {
         schoolsPanel.classList.remove('hidden');
 
+        if (createSchoolBox) {
+          createSchoolBox.classList.toggle('hidden', !isGlobalSuperAdmin());
+        }
+
         if (!isGlobalSuperAdmin()) {
           schoolsList.innerHTML = `
             <div class="col-span-full bg-amber-50 border border-amber-200 rounded-3xl p-5 text-sm text-amber-700">
