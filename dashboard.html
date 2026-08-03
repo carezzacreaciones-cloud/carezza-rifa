@@ -2042,6 +2042,19 @@
         createSchoolBtn.addEventListener('click', createSchool);
       }
 
+      if (newSchoolNameInput && newSchoolSlugInput) {
+        newSchoolNameInput.addEventListener('input', () => {
+          if (!newSchoolSlugInput.dataset.edited) {
+            newSchoolSlugInput.value = slugifySchoolName(newSchoolNameInput.value);
+          }
+        });
+
+        newSchoolSlugInput.addEventListener('input', () => {
+          newSchoolSlugInput.dataset.edited = 'true';
+          newSchoolSlugInput.value = slugifySchoolName(newSchoolSlugInput.value);
+        });
+      }
+
       onAuthStateChanged(auth, async (user) => {
         try {
           if (!user) {
