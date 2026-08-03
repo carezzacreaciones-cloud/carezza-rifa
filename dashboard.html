@@ -1407,6 +1407,83 @@
       if (newSchoolAccentColorInput) newSchoolAccentColorInput.value = '#2F9B84';
     }
 
+    async function createSchool() {
+      if (!isGlobalSuperAdmin()) {
+        alert('Solo el superadmin global puede crear planteles.');
+        return;
+      }
+
+      const schoolName = newSchoolNameInput?.value.trim();
+      const manualSlug = newSchoolSlugInput?.value.trim();
+      const schoolId = slugifySchoolName(manualSlug || schoolName);
+
+      if (!schoolName) {
+        alert('Debes escribir el nombre del plantel.');
+        return;
+      }
+
+      if (!schoolId) {
+        alert('Debes escribir un ID válido para el plantel.');
+        return;
+      }
+
+      const confirmCreate = confirm(`¿Crear el plantel "${schoolName}" con ID "${schoolId}"?`);
+
+      if (!confirmCreate) return;
+
+      try {
+        const schoolRef = schoolDocRef(schoolId);
+        const existingSchool = await getDoc(schoolRef);
+
+        if (existingSchool.exists()) {
+          alert('Ya existe un plantel con ese ID. Usa otro nombre o cambia el ID.');
+          return;
+        }
+
+        const schoolData = {
+          school_name: schoolName,
+          slug: schoolId,
+          active: true,
+          plan: newSchoolPlanInput?.value || 'demo',
+          primary_color: newSchoolPrimaryColorInput?.value || '#B5A7CB',
+          secondary_color: newSchoolSecondaryColorInput?.value || '#F8DCC0',
+          accent_color: newSchoolAccentColorInput?.value || '#2F9B84',
+          logo_url: '',
+          website: newSchoolWebsiteInput?.value.trim() || '',
+          email: newSchoolEmailInput?.value.trim() || '',
+          phone: newSchoolPhoneInput?.value.trim() || '',
+          created_by_uid: currentUser.uid,
+          created_by_email: currentUser.email || '',
+          created_by_name: currentProfile?.display_name || currentUser.email || '',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        };
+
+        await setDoc(schoolRef, schoolData);
+
+        await setDoc(doc(db, 'schools', schoolId, 'members', currentUser.uid), {
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          display_name: currentProfile?.display_name || currentUser.email || '',
+          role: 'school_superadmin',
+          active: true,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        clearCreateSchoolForm();
+
+        alert('Plantel creado correctamente.');
+
+        await loadSchoolsForDashboard();
+        setActiveSchool(schoolId);
+
+      } catch (error) {
+        console.error(error);
+        alert('No se pudo crear el plantel. Revisa consola o reglas de Firestore.');
+      }
+    }
+
     function isGlobalSuperAdmin() {
       return currentProfile?.role === 'global_superadmin' || currentProfile?.role === 'superadmin';
     }
