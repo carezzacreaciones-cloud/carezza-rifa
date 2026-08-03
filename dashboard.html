@@ -2038,6 +2038,10 @@
         });
       }
 
+      if (createSchoolBtn) {
+        createSchoolBtn.addEventListener('click', createSchool);
+      }
+
       onAuthStateChanged(auth, async (user) => {
         try {
           if (!user) {
