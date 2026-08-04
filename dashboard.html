@@ -311,6 +311,7 @@
 
         <div class="flex flex-wrap gap-3 mt-4">
           <a
+  id="goDrawBtn"
   href="sorteo.html"
   class="h-11 px-4 rounded-2xl bg-lavender text-white font-semibold hover:bg-lavDark transition flex items-center justify-center"
 >
@@ -415,6 +416,7 @@
     const newSchoolSecondaryColorInput = document.getElementById('newSchoolSecondaryColorInput');
     const newSchoolAccentColorInput = document.getElementById('newSchoolAccentColorInput');
     const createSchoolBtn = document.getElementById('createSchoolBtn');
+    const goDrawBtn = document.getElementById('goDrawBtn');
 
     function showStatus(message, isError = false) {
       const box = document.getElementById('statusBox');
@@ -823,6 +825,8 @@
           ? `cliente.html?share=${encodeURIComponent(shareId)}&school=${schoolParam}&raffle=${raffleParam}`
           : '';
 
+        const canDeleteThisRaffle = canManageRaffle(data);
+
         const card = document.createElement('div');
         card.className = 'rounded-2xl border border-lavLight bg-white p-4 shadow-sm';
 
@@ -872,9 +876,15 @@
                 <button class="h-11 px-4 rounded-2xl bg-gray-100 text-gray-400 border border-gray-200 font-semibold cursor-not-allowed" disabled>Sin link</button>
               `}
 
-              <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-id="${raffleId}" data-name="${displayName}" data-share="${shareId}">
-                Borrar
-              </button>
+              ${canDeleteThisRaffle ? `
+                <button class="delete-raffle-btn h-11 px-4 rounded-2xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition" data-id="${raffleId}" data-name="${displayName}" data-share="${shareId}">
+                  Borrar
+                </button>
+              ` : `
+                <button class="h-11 px-4 rounded-2xl bg-gray-100 text-gray-400 border border-gray-200 font-semibold cursor-not-allowed" disabled>
+                  Sin permiso
+                </button>
+              `}
             </div>
           </div>
         `;
@@ -1230,6 +1240,10 @@
       currentSchoolMember = null;
 
       localStorage.setItem('carezza_active_school_id', currentSchoolId);
+
+      if (goDrawBtn) {
+        goDrawBtn.href = `sorteo.html?school=${encodeURIComponent(currentSchoolId)}`;
+      }
 
       if (!isGlobalSuperAdmin()) {
         const memberSnap = await getDoc(schoolMemberRef(currentSchoolId));
