@@ -340,6 +340,24 @@
         </div>
       </section>
 
+      <!-- Usuarios globales -->
+      <section id="globalUsersSection" class="hidden bg-white/90 backdrop-blur rounded-3xl shadow-lg border border-lavLight p-6 sm:p-8 mt-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+          <div>
+            <h2 class="font-heading text-3xl text-lavDark font-bold">Usuarios del sistema</h2>
+            <p class="text-sm text-lavDark/60 mt-1">
+              Asigna usuarios al plantel activo y define si serán directora o profesora.
+            </p>
+          </div>
+
+          <span id="globalUsersCountBox" class="text-sm text-lavDark/60">0 usuarios</span>
+        </div>
+
+        <div id="globalUsersList" class="grid grid-cols-1 gap-4">
+          <p class="text-lavDark/50">No hay usuarios para mostrar.</p>
+        </div>
+      </section>
+
     </div>
   </main>
 
@@ -397,6 +415,7 @@
     let currentSchoolData = null;
     let currentSchoolMember = null;
     let availableSchools = [];
+    let allUsersCache = [];
     let unsubscribeSchoolRaffles = null;
 
     const schoolsPanel = document.getElementById('schoolsPanel');
@@ -417,6 +436,9 @@
     const newSchoolAccentColorInput = document.getElementById('newSchoolAccentColorInput');
     const createSchoolBtn = document.getElementById('createSchoolBtn');
     const goDrawBtn = document.getElementById('goDrawBtn');
+    const globalUsersSection = document.getElementById('globalUsersSection');
+    const globalUsersList = document.getElementById('globalUsersList');
+    const globalUsersCountBox = document.getElementById('globalUsersCountBox');
 
     function showStatus(message, isError = false) {
       const box = document.getElementById('statusBox');
@@ -1267,6 +1289,10 @@
       renderSchoolsList();
       applySchoolPermissions();
       refreshDashboard();
+
+      if (isGlobalSuperAdmin()) {
+        await loadAllUsersForGlobalAdmin();
+      }
     }
 
     async function loadSchoolsForDashboard() {
@@ -1391,6 +1417,246 @@
       }
     }
 
+    async function loadAllUsersForGlobalAdmin() {
+      if (!isGlobalSuperAdmin()) return;
+
+      if (globalUsersSection) {
+        globalUsersSection.classList.remove('hidden');
+      }
+
+      try {
+        const usersSnap = await getDocs(collection(db, 'users'));
+
+        allUsersCache = usersSnap.docs.map((userDoc) => {
+          const data = userDoc.data() || {};
+
+          return {
+            uid: userDoc.id,
+            email: data.email || '',
+            display_name: data.display_name || '',
+            role: data.role || 'user',
+            active: data.active !== false,
+            school_ids: Array.isArray(data.school_ids) ? data.school_ids : []
+          };
+        });
+
+        allUsersCache.sort((a, b) => {
+          const av = a.display_name || a.email || a.uid;
+          const bv = b.display_name || b.email || b.uid;
+          return av.localeCompare(bv, 'es');
+        });
+
+        renderGlobalUsers();
+      } catch (error) {
+        console.error('Error cargando usuarios:', error);
+        showStatus('Error cargando usuarios del sistema.', true);
+      }
+    }
+
+    function renderGlobalUsers() {
+      if (!globalUsersList || !globalUsersCountBox) return;
+
+      globalUsersCountBox.textContent = `${allUsersCache.length} ${allUsersCache.length === 1 ? 'usuario' : 'usuarios'}`;
+
+      if (!allUsersCache.length) {
+        globalUsersList.innerHTML = '<p class="text-lavDark/50">No hay usuarios para mostrar.</p>';
+        return;
+      }
+
+      globalUsersList.innerHTML = allUsersCache.map((user) => {
+        const displayName = user.display_name || 'Sin nombre';
+        const email = user.email || 'Sin correo';
+        const globalRole = user.role || 'user';
+        const active = user.active !== false;
+        const isCurrentUser = currentUser && currentUser.uid === user.uid;
+        const belongsToCurrentSchool = currentSchoolId && user.school_ids.includes(currentSchoolId);
+
+        return `
+          <div class="bg-lavLight/10 rounded-2xl p-4 border border-lavLight/30">
+            <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+              <div>
+                <p class="font-semibold text-lavDark">${displayName}</p>
+                <p class="text-xs text-lavDark/60 break-all">${email}</p>
+
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                    globalRole === 'global_superadmin'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-blue-100 text-blue-700'
+                  }">
+                    ${globalRole}
+                  </span>
+
+                  <span class="inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                    active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                  }">
+                    ${active ? 'activo' : 'inactivo'}
+                  </span>
+
+                  ${
+                    belongsToCurrentSchool
+                      ? '<span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">asignado al plantel activo</span>'
+                      : '<span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500">no asignado al plantel activo</span>'
+                  }
+
+                  ${
+                    isCurrentUser
+                      ? '<span class="inline-block px-2 py-1 rounded-full text-xs font-semibold bg-lavLight text-lavDark">tu cuenta</span>'
+                      : ''
+                  }
+                </div>
+              </div>
+
+              <div class="flex flex-col sm:flex-row gap-2 xl:items-center">
+                <select
+                  class="school-member-role-select px-3 py-2 rounded-xl border border-lavLight text-sm focus:outline-none focus:ring-2 focus:ring-lavender/40"
+                  data-uid="${user.uid}"
+                  ${isCurrentUser ? 'disabled' : ''}
+                >
+                  <option value="school_superadmin">Directora / Superadmin plantel</option>
+                  <option value="school_admin">Profesora / Admin rifa</option>
+                  <option value="viewer">Solo lectura</option>
+                </select>
+
+                <button
+                  class="assign-school-btn h-10 px-4 rounded-xl bg-lavender text-white font-semibold hover:bg-lavDark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-uid="${user.uid}"
+                  ${isCurrentUser ? 'disabled' : ''}
+                >
+                  Asignar al plantel
+                </button>
+
+                <button
+                  class="remove-school-btn h-10 px-4 rounded-xl bg-white text-red-500 border border-red-200 font-semibold hover:bg-red-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-uid="${user.uid}"
+                  ${!belongsToCurrentSchool || isCurrentUser ? 'disabled' : ''}
+                >
+                  Quitar del plantel
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.assign-school-btn').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          const uid = event.currentTarget.dataset.uid;
+          const roleSelect = document.querySelector(`.school-member-role-select[data-uid="${uid}"]`);
+          const role = roleSelect?.value || 'school_admin';
+
+          await assignUserToCurrentSchool(uid, role);
+        });
+      });
+
+      document.querySelectorAll('.remove-school-btn').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          const uid = event.currentTarget.dataset.uid;
+          await removeUserFromCurrentSchool(uid);
+        });
+      });
+    }
+
+    async function assignUserToCurrentSchool(uid, schoolRole) {
+      if (!isGlobalSuperAdmin()) {
+        showStatus('Solo el superadmin global puede asignar usuarios a planteles.', true);
+        return;
+      }
+
+      if (!currentSchoolId) {
+        showStatus('Selecciona un plantel antes de asignar usuarios.', true);
+        return;
+      }
+
+      const allowedRoles = ['school_superadmin', 'school_admin', 'viewer'];
+
+      if (!allowedRoles.includes(schoolRole)) {
+        showStatus('El rol seleccionado no es válido.', true);
+        return;
+      }
+
+      const user = allUsersCache.find((item) => item.uid === uid);
+
+      if (!user) {
+        showStatus('Usuario no encontrado.', true);
+        return;
+      }
+
+      const ok = confirm(`¿Asignar a ${user.email || user.uid} al plantel "${currentSchoolId}" como ${schoolRole}?`);
+
+      if (!ok) return;
+
+      try {
+        const newSchoolIds = Array.from(new Set([...(user.school_ids || []), currentSchoolId]));
+
+        await setDoc(userProfileRef(uid), {
+          school_ids: newSchoolIds,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        await setDoc(doc(db, 'schools', currentSchoolId, 'members', uid), {
+          uid,
+          email: user.email || '',
+          display_name: user.display_name || user.email || '',
+          role: schoolRole,
+          active: true,
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp()
+        }, { merge: true });
+
+        showStatus('Usuario asignado al plantel correctamente.');
+        await loadAllUsersForGlobalAdmin();
+      } catch (error) {
+        console.error('Error asignando usuario:', error);
+        showStatus('Error al asignar usuario al plantel.', true);
+      }
+    }
+
+    async function removeUserFromCurrentSchool(uid) {
+      if (!isGlobalSuperAdmin()) {
+        showStatus('Solo el superadmin global puede quitar usuarios de planteles.', true);
+        return;
+      }
+
+      if (!currentSchoolId) {
+        showStatus('Selecciona un plantel antes de quitar usuarios.', true);
+        return;
+      }
+
+      if (uid === currentUser.uid) {
+        showStatus('No puedes quitar tu propia cuenta del plantel.', true);
+        return;
+      }
+
+      const user = allUsersCache.find((item) => item.uid === uid);
+
+      if (!user) {
+        showStatus('Usuario no encontrado.', true);
+        return;
+      }
+
+      const ok = confirm(`¿Quitar a ${user.email || user.uid} del plantel "${currentSchoolId}"?`);
+
+      if (!ok) return;
+
+      try {
+        const newSchoolIds = (user.school_ids || []).filter((schoolId) => schoolId !== currentSchoolId);
+
+        await setDoc(userProfileRef(uid), {
+          school_ids: newSchoolIds,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        await deleteDoc(doc(db, 'schools', currentSchoolId, 'members', uid));
+
+        showStatus('Usuario quitado del plantel correctamente.');
+        await loadAllUsersForGlobalAdmin();
+      } catch (error) {
+        console.error('Error quitando usuario:', error);
+        showStatus('Error al quitar usuario del plantel.', true);
+      }
+    }
+
     async function refreshDashboard() {
       startSchoolRafflesListener();
     }
@@ -1501,6 +1767,7 @@
 
           await loadCurrentProfile(user);
           await loadSchoolsForDashboard();
+          await loadAllUsersForGlobalAdmin();
           applyDashboardMode();
 
           const userBox = document.getElementById('userBox');
