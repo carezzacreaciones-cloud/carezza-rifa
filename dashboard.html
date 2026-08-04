@@ -394,6 +394,7 @@
     let currentProfile = null;
     let currentSchoolId = null;
     let currentSchoolData = null;
+    let currentSchoolMember = null;
     let availableSchools = [];
     let unsubscribeSchoolRaffles = null;
 
@@ -669,6 +670,11 @@
         return;
       }
 
+      if (!canCreateRaffleInSchool()) {
+        showStatus('No tienes permisos para crear rifas en este plantel.', true);
+        return;
+      }
+
       const nameInput = document.getElementById('raffleNameInput');
       const slugInput = document.getElementById('raffleSlugInput');
       const startInput = document.getElementById('raffleStartInput');
@@ -895,7 +901,11 @@
       }
 
       unsubscribeSchoolRaffles = onSnapshot(schoolRafflesColRef(), (snapshot) => {
-        const docs = snapshot.docs
+        const visibleDocs = snapshot.docs.filter((raffleDoc) => {
+          return canSeeAllRafflesInSchool() || canManageRaffle(raffleDoc.data());
+        });
+
+        const docs = visibleDocs
           .map((raffleDoc) => ({
             id: raffleDoc.id,
             data: raffleDoc.data()
@@ -1004,7 +1014,7 @@
         alert('Plantel creado correctamente.');
 
         await loadSchoolsForDashboard();
-        setActiveSchool(schoolId);
+        await setActiveSchool(schoolId);
 
       } catch (error) {
         console.error(error);
@@ -1014,6 +1024,72 @@
 
     function isGlobalSuperAdmin() {
       return currentProfile?.role === 'global_superadmin' || currentProfile?.role === 'superadmin';
+    }
+
+    function schoolMemberRef(schoolId, uid = currentUser.uid) {
+      return doc(db, 'schools', schoolId, 'members', uid);
+    }
+
+    function getCurrentSchoolRole() {
+      if (isGlobalSuperAdmin()) return 'global_superadmin';
+      return currentSchoolMember?.role || null;
+    }
+
+    function isSchoolSuperAdmin() {
+      return getCurrentSchoolRole() === 'school_superadmin';
+    }
+
+    function isSchoolAdmin() {
+      return getCurrentSchoolRole() === 'school_admin';
+    }
+
+    function canSeeAllRafflesInSchool() {
+      return isGlobalSuperAdmin() || isSchoolSuperAdmin();
+    }
+
+    function canCreateRaffleInSchool() {
+      return isGlobalSuperAdmin() || isSchoolSuperAdmin() || isSchoolAdmin();
+    }
+
+    function canManageSchoolSettings() {
+      return isGlobalSuperAdmin() || isSchoolSuperAdmin();
+    }
+
+    function canManageRaffle(raffleData = {}) {
+      if (isGlobalSuperAdmin() || isSchoolSuperAdmin()) return true;
+
+      const adminUids = Array.isArray(raffleData.admin_uids) ? raffleData.admin_uids : [];
+
+      return (
+        raffleData.created_by_uid === currentUser.uid ||
+        adminUids.includes(currentUser.uid)
+      );
+    }
+
+    function applySchoolPermissions() {
+      const createSection = document.getElementById('createSection');
+
+      if (createSection) {
+        createSection.classList.toggle('hidden', !canCreateRaffleInSchool());
+      }
+
+      if (createSchoolBox) {
+        createSchoolBox.classList.toggle('hidden', !isGlobalSuperAdmin());
+      }
+
+      const role = getCurrentSchoolRole();
+      const userBox = document.getElementById('userBox');
+
+      if (userBox && currentSchoolId) {
+        const roleLabel = {
+          global_superadmin: 'Superadmin global',
+          school_superadmin: 'Superadmin del plantel',
+          school_admin: 'Admin de rifa',
+          viewer: 'Solo lectura'
+        }[role] || currentProfile?.role || 'Usuario';
+
+        userBox.textContent = `${currentProfile.display_name || currentUser.email} · ${roleLabel}`;
+      }
     }
 
     function schoolsColRef() {
@@ -1115,25 +1191,46 @@
       document.querySelectorAll('[data-school-card]').forEach((button) => {
         button.addEventListener('click', () => {
           const schoolId = button.dataset.schoolCard;
-          setActiveSchool(schoolId);
+          setActiveSchool(schoolId).catch((error) => {
+            console.error(error);
+            showStatus('No se pudo cambiar de plantel.', true);
+          });
         });
       });
     }
 
-    function setActiveSchool(schoolId) {
+    async function setActiveSchool(schoolId) {
       const selectedSchool = availableSchools.find((school) => school.id === schoolId);
 
       if (!selectedSchool) return;
 
       currentSchoolId = selectedSchool.id;
       currentSchoolData = selectedSchool.data;
+      currentSchoolMember = null;
 
       localStorage.setItem('carezza_active_school_id', currentSchoolId);
+
+      if (!isGlobalSuperAdmin()) {
+        const memberSnap = await getDoc(schoolMemberRef(currentSchoolId));
+
+        if (memberSnap.exists()) {
+          currentSchoolMember = memberSnap.data();
+        }
+      } else {
+        currentSchoolMember = {
+          uid: currentUser.uid,
+          email: currentUser.email || '',
+          display_name: currentProfile?.display_name || currentUser.email || '',
+          role: 'global_superadmin',
+          active: true
+        };
+      }
 
       applyBranding(currentSchoolData);
       renderActiveSchool();
       renderSchoolOptions();
       renderSchoolsList();
+      applySchoolPermissions();
       refreshDashboard();
     }
 
@@ -1147,45 +1244,58 @@
           createSchoolBox.classList.toggle('hidden', !isGlobalSuperAdmin());
         }
 
-        if (!isGlobalSuperAdmin()) {
-          schoolsList.innerHTML = `
-            <div class="col-span-full bg-amber-50 border border-amber-200 rounded-3xl p-5 text-sm text-amber-700">
-              Tu usuario todavía no tiene planteles cargados desde el dashboard. En esta primera etapa, la carga de planteles está habilitada para superadmin global.
-            </div>
-          `;
-
-          if (schoolSelect) {
-            schoolSelect.innerHTML = '<option value="">Sin planteles disponibles</option>';
-          }
-
-          return;
-        }
-
         const schoolsSnap = await getDocs(schoolsColRef());
-
-        availableSchools = schoolsSnap.docs.map((schoolDoc) => ({
+        const allSchools = schoolsSnap.docs.map((schoolDoc) => ({
           id: schoolDoc.id,
           data: schoolDoc.data()
         }));
 
-        const savedSchoolId = localStorage.getItem('carezza_active_school_id');
+        if (isGlobalSuperAdmin()) {
+          availableSchools = allSchools;
+        } else {
+          const membershipResults = await Promise.all(
+            allSchools.map(async (school) => {
+              const memberSnap = await getDoc(schoolMemberRef(school.id));
 
-        if (savedSchoolId && availableSchools.some((school) => school.id === savedSchoolId)) {
-          const savedSchool = availableSchools.find((school) => school.id === savedSchoolId);
-          currentSchoolId = savedSchool.id;
-          currentSchoolData = savedSchool.data;
-        } else if (availableSchools.length) {
-          currentSchoolId = availableSchools[0].id;
-          currentSchoolData = availableSchools[0].data;
+              if (!memberSnap.exists() || memberSnap.data()?.active === false) {
+                return null;
+              }
+
+              return school;
+            })
+          );
+
+          availableSchools = membershipResults.filter(Boolean);
         }
 
-        applyBranding(currentSchoolData || {});
-        renderActiveSchool();
-        renderSchoolOptions();
-        renderSchoolsList();
+        const savedSchoolId = localStorage.getItem('carezza_active_school_id');
+        const selectedSchoolId = (
+          savedSchoolId && availableSchools.some((school) => school.id === savedSchoolId)
+        )
+          ? savedSchoolId
+          : availableSchools[0]?.id || null;
 
+        if (!selectedSchoolId) {
+          currentSchoolId = null;
+          currentSchoolData = null;
+          currentSchoolMember = null;
+          applyBranding({});
+          renderActiveSchool();
+          renderSchoolOptions();
+          renderSchoolsList();
+          applySchoolPermissions();
+          renderRaffles([]);
+          return;
+        }
+
+        await setActiveSchool(selectedSchoolId);
       } catch (error) {
         console.error(error);
+
+        currentSchoolId = null;
+        currentSchoolData = null;
+        currentSchoolMember = null;
+        applySchoolPermissions();
 
         if (schoolsList) {
           schoolsList.innerHTML = `
@@ -1275,7 +1385,10 @@
 
       if (schoolSelect) {
         schoolSelect.addEventListener('change', () => {
-          setActiveSchool(schoolSelect.value);
+          setActiveSchool(schoolSelect.value).catch((error) => {
+            console.error(error);
+            showStatus('No se pudo cambiar de plantel.', true);
+          });
         });
       }
 
@@ -1316,6 +1429,7 @@
             userBox.textContent = `${currentProfile.display_name || user.email} · ${currentProfile.role}`;
           }
 
+          applySchoolPermissions();
           await refreshDashboard();
         } catch (error) {
           console.error('Error iniciando sesión en dashboard:', error);
