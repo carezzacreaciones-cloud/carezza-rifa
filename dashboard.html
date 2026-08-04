@@ -622,6 +622,7 @@
         number_end: String(range.end),
         total_numbers: String(range.count),
         raffle_status: 'active',
+        admin_uids: [currentUser.uid],
         created_by_uid: currentUser.uid,
         created_by_email: currentUser.email || '',
         created_by_name: currentProfile?.display_name || currentUser.email || '',
@@ -702,6 +703,13 @@
       }
 
       try {
+        const existingRaffle = await getDoc(schoolRaffleDocRef(raffleId));
+
+        if (existingRaffle.exists()) {
+          showStatus('Ya existe una rifa con ese ID en este plantel. Cambia el slug o el nombre.', true);
+          return;
+        }
+
         const shareId = generateShareId();
 
         await ensureRootRaffleDoc(raffleId, raffleName, shareId, range);
@@ -901,15 +909,15 @@
       }
 
       unsubscribeSchoolRaffles = onSnapshot(schoolRafflesColRef(), (snapshot) => {
-        const visibleDocs = snapshot.docs.filter((raffleDoc) => {
-          return canSeeAllRafflesInSchool() || canManageRaffle(raffleDoc.data());
-        });
-
-        const docs = visibleDocs
+        const docs = snapshot.docs
           .map((raffleDoc) => ({
             id: raffleDoc.id,
             data: raffleDoc.data()
           }))
+          .filter((item) => {
+            if (canSeeAllRafflesInSchool()) return true;
+            return canManageRaffle(item.data);
+          })
           .sort((a, b) => {
             const av = a.data.raffle_name || a.id;
             const bv = b.data.raffle_name || b.id;
@@ -1008,6 +1016,19 @@
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp()
         }, { merge: true });
+
+        if (!isGlobalSuperAdmin()) {
+          const currentSchoolIds = Array.isArray(currentProfile.school_ids)
+            ? currentProfile.school_ids
+            : [];
+
+          await setDoc(userProfileRef(currentUser.uid), {
+            school_ids: Array.from(new Set([...currentSchoolIds, schoolId])),
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+
+          currentProfile.school_ids = Array.from(new Set([...currentSchoolIds, schoolId]));
+        }
 
         clearCreateSchoolForm();
 
@@ -1244,28 +1265,56 @@
           createSchoolBox.classList.toggle('hidden', !isGlobalSuperAdmin());
         }
 
-        const schoolsSnap = await getDocs(schoolsColRef());
-        const allSchools = schoolsSnap.docs.map((schoolDoc) => ({
-          id: schoolDoc.id,
-          data: schoolDoc.data()
-        }));
-
         if (isGlobalSuperAdmin()) {
-          availableSchools = allSchools;
+          const schoolsSnap = await getDocs(schoolsColRef());
+
+          availableSchools = schoolsSnap.docs.map((schoolDoc) => ({
+            id: schoolDoc.id,
+            data: schoolDoc.data()
+          }));
         } else {
-          const membershipResults = await Promise.all(
-            allSchools.map(async (school) => {
-              const memberSnap = await getDoc(schoolMemberRef(school.id));
+          const schoolIds = Array.isArray(currentProfile.school_ids)
+            ? currentProfile.school_ids
+            : [];
 
-              if (!memberSnap.exists() || memberSnap.data()?.active === false) {
-                return null;
-              }
+          if (!schoolIds.length) {
+            availableSchools = [];
+            currentSchoolId = null;
+            currentSchoolData = null;
+            currentSchoolMember = null;
 
-              return school;
-            })
-          );
+            if (schoolsList) {
+              schoolsList.innerHTML = `
+                <div class="col-span-full bg-amber-50 border border-amber-200 rounded-3xl p-5 text-sm text-amber-700">
+                  Tu usuario no tiene planteles asignados todavía.
+                </div>
+              `;
+            }
 
-          availableSchools = membershipResults.filter(Boolean);
+            if (schoolSelect) {
+              schoolSelect.innerHTML = '<option value="">Sin planteles asignados</option>';
+            }
+
+            renderActiveSchool();
+            applySchoolPermissions();
+            renderRaffles([]);
+            return;
+          }
+
+          const schoolResults = [];
+
+          for (const schoolId of schoolIds) {
+            const schoolSnap = await getDoc(schoolDocRef(schoolId));
+
+            if (schoolSnap.exists()) {
+              schoolResults.push({
+                id: schoolSnap.id,
+                data: schoolSnap.data()
+              });
+            }
+          }
+
+          availableSchools = schoolResults;
         }
 
         const savedSchoolId = localStorage.getItem('carezza_active_school_id');
@@ -1359,8 +1408,9 @@
       currentProfile = {
         email: data.email || user.email || '',
         display_name: data.display_name || '',
-        role: data.role || 'admin',
-        active: data.active !== false
+        role: data.role || 'user',
+        active: data.active !== false,
+        school_ids: Array.isArray(data.school_ids) ? data.school_ids : []
       };
     }
 
